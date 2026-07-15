@@ -87,6 +87,15 @@ class ActuatorConfig:
 
 
 @dataclass(frozen=True)
+class TelegramConfig:
+    enabled: bool = False
+    owner_chat_id: str = ""
+    manual_deploy_enabled: bool = True
+    poll_timeout_seconds: int = 10
+    token: str | None = field(default=None, repr=False)
+
+
+@dataclass(frozen=True)
 class HatiConfig:
     camera: CameraConfig
     events: EventConfig
@@ -94,6 +103,7 @@ class HatiConfig:
     decision: DecisionConfig
     vision: VisionConfig
     actuator: ActuatorConfig
+    telegram: TelegramConfig
     runtime: RuntimeConfig
 
 
@@ -129,6 +139,9 @@ def load_config(path: str | Path) -> HatiConfig:
     actuator_raw = raw.get("actuator", {})
     if not isinstance(actuator_raw, dict):
         raise ConfigurationError("Configuration section 'actuator' must be an object")
+    telegram_raw = raw.get("telegram", {})
+    if not isinstance(telegram_raw, dict):
+        raise ConfigurationError("Configuration section 'telegram' must be an object")
     runtime_raw = _require_mapping(raw, "runtime")
 
     camera = CameraConfig(
@@ -199,13 +212,26 @@ def load_config(path: str | Path) -> HatiConfig:
         ),
         burst_seconds=float(actuator_raw.get("burst_seconds", 5.0)),
     )
+    telegram = TelegramConfig(
+        enabled=bool(telegram_raw.get("enabled", False)),
+        owner_chat_id=str(
+            os.environ.get(
+                "HATI_TELEGRAM_CHAT_ID", telegram_raw.get("owner_chat_id", "")
+            )
+        ).strip(),
+        manual_deploy_enabled=bool(
+            telegram_raw.get("manual_deploy_enabled", True)
+        ),
+        poll_timeout_seconds=int(telegram_raw.get("poll_timeout_seconds", 10)),
+        token=os.environ.get("HATI_TELEGRAM_BOT_TOKEN"),
+    )
     runtime = RuntimeConfig(
         armed=bool(runtime_raw.get("armed", False)),
         test_mode=bool(runtime_raw.get("test_mode", True)),
         log_level=str(runtime_raw.get("log_level", "INFO")).upper(),
     )
 
-    _validate(camera, events, motion, decision, vision, actuator)
+    _validate(camera, events, motion, decision, vision, actuator, telegram)
     return HatiConfig(
         camera=camera,
         events=events,
@@ -213,6 +239,7 @@ def load_config(path: str | Path) -> HatiConfig:
         decision=decision,
         vision=vision,
         actuator=actuator,
+        telegram=telegram,
         runtime=runtime,
     )
 
@@ -224,6 +251,7 @@ def _validate(
     decision: DecisionConfig,
     vision: VisionConfig,
     actuator: ActuatorConfig,
+    telegram: TelegramConfig,
 ) -> None:
     if not camera.host:
         raise ConfigurationError("camera.host must not be empty")
@@ -277,3 +305,9 @@ def _validate(
         raise ConfigurationError("actuator.kind must be 'dry_run' or 'tuya_diffuser'")
     if not 0 < actuator.burst_seconds <= 5:
         raise ConfigurationError("actuator.burst_seconds must be greater than 0 and at most 5")
+    if telegram.enabled and not telegram.owner_chat_id:
+        raise ConfigurationError("telegram.owner_chat_id is required when Telegram is enabled")
+    if telegram.enabled and not telegram.token:
+        raise ConfigurationError("HATI_TELEGRAM_BOT_TOKEN is required when Telegram is enabled")
+    if not 0 <= telegram.poll_timeout_seconds <= 30:
+        raise ConfigurationError("telegram.poll_timeout_seconds must be between 0 and 30")

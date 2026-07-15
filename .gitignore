@@ -33,7 +33,16 @@ __pycache__/
 venv/
 dist/
 build/
+!site/build/
+!site/build/**
 *.egg-info/
+
+# Judge site
+site/node_modules/
+site/.vinext/
+site/.next/
+site/dist/
+site/.wrangler/
 
 # Editors and operating systems
 .idea/

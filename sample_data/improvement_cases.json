@@ -1,0 +1,29 @@
+{
+  "notice": "Controlled synthetic comparison proving the evaluation gate; not a claim of live model accuracy.",
+  "cases": [
+    {
+      "name": "plush-decoy-red-team",
+      "expected_outcome": "deny",
+      "baseline_labels": ["raccoon", "raccoon", "raccoon", "raccoon", "unknown"],
+      "candidate_labels": ["unknown", "unknown", "unknown", "unknown", "unknown"]
+    },
+    {
+      "name": "actual-raccoon-consensus",
+      "expected_outcome": "authorize",
+      "baseline_labels": ["raccoon", "raccoon", "raccoon", "raccoon", "unknown"],
+      "candidate_labels": ["raccoon", "raccoon", "raccoon", "raccoon", "unknown"]
+    },
+    {
+      "name": "human-veto",
+      "expected_outcome": "deny",
+      "baseline_labels": ["raccoon", "raccoon", "raccoon", "raccoon", "human"],
+      "candidate_labels": ["raccoon", "raccoon", "raccoon", "raccoon", "human"]
+    },
+    {
+      "name": "resident-chickens",
+      "expected_outcome": "deny",
+      "baseline_labels": ["chicken", "chicken", "chicken", "chicken", "chicken"],
+      "candidate_labels": ["chicken", "chicken", "chicken", "chicken", "chicken"]
+    }
+  ]
+}

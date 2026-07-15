@@ -25,6 +25,12 @@ physical action. Deterministic Python code applies the safety policy.
   protection.
 - Mapped the Tuya diffuser from water-only observations and implemented weak,
   dark, time-capped activation with unconditional shutdown and off verification.
+- Built the Telegram owner loop: photo alerts, review labels, status, dry-run
+  testing, and a separate authenticated manual-deploy path.
+- Turned “show one real improvement” into an evaluation gate that rejects
+  regressions instead of allowing the live system to rewrite itself.
+- Built and deployed an interactive judge experience, public CI, and submission
+  documentation from the same verified event records and tests.
 - Continuously converted physical tests and red-team questions into regression
   tests and fail-closed behavior.
 
@@ -53,11 +59,17 @@ physical action. Deterministic Python code applies the safety policy.
   verified off afterward.
 - The public judge demo exercises authorization and dry-run actuation without a
   camera, API key, network, or physical device.
+- The controlled improvement fixture corrects one plush-decoy error, moves from
+  3/4 to 4/4, and records zero regressions. It demonstrates the promotion
+  mechanism, not live-wildlife accuracy.
+- The Telegram integration is covered by fake-transport tests; live bot
+  registration remains an owner setup step so no bot secret enters the repository.
 
 ## Honest current limitations
 
 The final coop placement has not yet been field-tested, and HATI has not claimed
-a live wildlife detection. Plush and replay tests are labeled as controlled
-tests, not proof of real-world accuracy. Notifications and a judge-facing UI are
-future work. These limits are kept explicit so the demo shows what was actually
-built rather than what the ghost dog merely aspires to haunt.
+a live wildlife detection. Plush, replay, and improvement fixtures are labeled as
+controlled tests, not proof of real-world accuracy. The Telegram bot still needs
+its live owner registration, and the judge site still needs the finished public
+video. These limits are kept explicit so the demo shows what was actually built
+rather than what the ghost dog merely aspires to haunt.

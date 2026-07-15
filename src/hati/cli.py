@@ -10,6 +10,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from hati.actuator import DryRunActuator, TuyaDiffuserActuator
 from hati.camera import (
     CameraError,
     capture_frame,
@@ -20,9 +21,16 @@ from hati.config import ConfigurationError, HatiConfig, load_config
 from hati.decision import authorize
 from hati.demo import EXPECTED, run_demo_case
 from hati.event_store import EventStore
+from hati.evaluation import evaluate_improvement
 from hati.logging_config import configure_logging
-from hati.models import ProcessingState, SystemState, to_jsonable
+from hati.models import EventRecord, ProcessingState, SystemState, to_jsonable
 from hati.simulation import SCENARIOS, build_simulated_event
+from hati.telegram import (
+    TelegramClient,
+    TelegramController,
+    TelegramError,
+    notification_preview,
+)
 from hati.watch import WatchError, watch_once
 from hati.vision import VisionError, classify_frames
 
@@ -50,6 +58,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     demo.add_argument("--config", type=Path, required=True)
     demo.add_argument("--output", type=Path, default=Path("data/demo_runs"))
+
+    evaluate = subparsers.add_parser(
+        "evaluate-improvement",
+        help="Compare controlled baseline and candidate behavior without an API",
+    )
+    evaluate.add_argument("--config", type=Path, required=True)
+    evaluate.add_argument(
+        "--cases", type=Path, default=Path("sample_data/improvement_cases.json")
+    )
 
     camera_probe = subparsers.add_parser(
         "camera-probe", help="Prompt locally and capture one authenticated camera frame"
@@ -86,6 +103,26 @@ def build_parser() -> argparse.ArgumentParser:
     )
     decide.add_argument("--config", type=Path, required=True)
     decide.add_argument("--event", type=Path, required=True)
+
+    telegram_preview = subparsers.add_parser(
+        "telegram-preview",
+        help="Render an event notification without contacting Telegram",
+    )
+    telegram_preview.add_argument("--config", type=Path, required=True)
+    telegram_preview.add_argument("--event", type=Path, required=True)
+
+    telegram_notify = subparsers.add_parser(
+        "telegram-notify", help="Send one saved event to the configured owner"
+    )
+    telegram_notify.add_argument("--config", type=Path, required=True)
+    telegram_notify.add_argument("--event", type=Path, required=True)
+
+    telegram_poll = subparsers.add_parser(
+        "telegram-poll-once",
+        help="Process one batch of owner feedback and commands",
+    )
+    telegram_poll.add_argument("--config", type=Path, required=True)
+    telegram_poll.add_argument("--offset", type=int)
     return parser
 
 
@@ -122,6 +159,9 @@ def _doctor(config: HatiConfig) -> int:
         "actuator_burst_seconds": config.actuator.burst_seconds,
         "actuator_private_config_present": config.actuator.private_device_config.exists(),
         "actuator_integration_present": config.actuator.kind == "tuya_diffuser",
+        "telegram_enabled": config.telegram.enabled,
+        "telegram_owner_present": bool(config.telegram.owner_chat_id),
+        "telegram_manual_deploy_enabled": config.telegram.manual_deploy_enabled,
     }
     print(json.dumps(report, indent=2))
     return 0
@@ -185,6 +225,20 @@ def _demo(config: HatiConfig, scenario: str, output: Path) -> int:
         )
     )
     return 0 if passed else 1
+
+
+def _evaluate(config: HatiConfig, cases: Path) -> int:
+    try:
+        report = evaluate_improvement(
+            cases,
+            config.decision,
+            sorted(config.events.protected_zones)[0],
+        )
+    except (OSError, ValueError, KeyError, json.JSONDecodeError) as exc:
+        print(f"Evaluation failed: {type(exc).__name__}: {exc}", file=sys.stderr)
+        return 2
+    print(json.dumps(report.as_dict(), indent=2))
+    return 0 if report.candidate_promoted else 1
 
 
 def _camera_probe(
@@ -415,6 +469,96 @@ def _decide_event(config: HatiConfig, event_path: Path) -> int:
     return 0
 
 
+def _load_event(path: Path) -> EventRecord:
+    try:
+        return EventStore.load(path)
+    except (OSError, ValueError, KeyError, json.JSONDecodeError) as exc:
+        print(f"Could not load event trace: {type(exc).__name__}", file=sys.stderr)
+        raise SystemExit(2) from exc
+
+
+def _telegram_preview(event_path: Path) -> int:
+    event = _load_event(event_path)
+    print(json.dumps(notification_preview(event), indent=2))
+    return 0
+
+
+def _telegram_client(config: HatiConfig) -> TelegramClient:
+    if not config.telegram.enabled:
+        print("Telegram is disabled in local configuration.", file=sys.stderr)
+        raise SystemExit(2)
+    try:
+        return TelegramClient(config.telegram)
+    except ValueError as exc:
+        print(f"Telegram configuration error: {exc}", file=sys.stderr)
+        raise SystemExit(2) from exc
+
+
+def _telegram_notify(config: HatiConfig, event_path: Path) -> int:
+    event = _load_event(event_path)
+    try:
+        _telegram_client(config).send_event(event)
+    except TelegramError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    print(json.dumps({"result": "telegram_notification_sent", "event_id": event.event_id}))
+    return 0
+
+
+def _configured_actuator(config: HatiConfig):
+    if config.actuator.kind == "dry_run":
+        return DryRunActuator()
+    try:
+        return TuyaDiffuserActuator.from_private_config(
+            config.actuator.private_device_config,
+            burst_seconds=config.actuator.burst_seconds,
+        )
+    except (OSError, ValueError, KeyError, json.JSONDecodeError) as exc:
+        print(f"Actuator configuration error: {type(exc).__name__}", file=sys.stderr)
+        raise SystemExit(2) from exc
+
+
+def _telegram_poll(config: HatiConfig, offset: int | None) -> int:
+    client = _telegram_client(config)
+    controller = TelegramController(
+        config.telegram,
+        EventStore(config.events.event_directory),
+        _configured_actuator(config),
+    )
+    try:
+        updates = client.get_updates(offset)
+        results = []
+        next_offset = offset
+        for update in updates:
+            action = controller.handle(update)
+            update_id = int(update.get("update_id", 0))
+            next_offset = max(next_offset or 0, update_id + 1)
+            callback = update.get("callback_query")
+            if isinstance(callback, dict) and callback.get("id"):
+                client.answer_callback(str(callback["id"]), action.detail)
+            elif action.kind != "ignored":
+                client.send_text(action.detail)
+            results.append(
+                {
+                    "update_id": update_id,
+                    "kind": action.kind,
+                    "accepted": action.accepted,
+                    "detail": action.detail,
+                    "event_id": action.event_id,
+                }
+            )
+    except TelegramError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    print(
+        json.dumps(
+            {"processed": len(results), "next_offset": next_offset, "results": results},
+            indent=2,
+        )
+    )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     config = _load(args.config)
@@ -425,6 +569,8 @@ def main(argv: list[str] | None = None) -> int:
         return _simulate(config, args.scenario)
     if args.command == "demo":
         return _demo(config, args.scenario, args.output)
+    if args.command == "evaluate-improvement":
+        return _evaluate(config, args.cases)
     if args.command == "camera-probe":
         return _camera_probe(config, args.username, args.stream, args.output)
     if args.command == "watch":
@@ -433,4 +579,10 @@ def main(argv: list[str] | None = None) -> int:
         return _classify_event(config, args.event)
     if args.command == "decide-event":
         return _decide_event(config, args.event)
+    if args.command == "telegram-preview":
+        return _telegram_preview(args.event)
+    if args.command == "telegram-notify":
+        return _telegram_notify(config, args.event)
+    if args.command == "telegram-poll-once":
+        return _telegram_poll(config, args.offset)
     raise AssertionError(f"Unhandled command: {args.command}")

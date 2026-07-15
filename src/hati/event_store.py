@@ -13,6 +13,8 @@ from hati.models import (
     DecisionOutcome,
     DecisionRecord,
     EventRecord,
+    FeedbackKind,
+    HumanFeedback,
     InferenceTrace,
     ProcessingState,
     to_jsonable,
@@ -68,6 +70,16 @@ class EventStore:
                 human_veto=bool(decision_raw["human_veto"]),
                 decided_at=datetime.fromisoformat(decision_raw["decided_at"]),
             )
+        feedback = [
+            HumanFeedback(
+                kind=FeedbackKind(item["kind"]),
+                source=str(item["source"]),
+                actor_id=str(item["actor_id"]),
+                recorded_at=datetime.fromisoformat(item["recorded_at"]),
+                note=str(item["note"]) if item.get("note") else None,
+            )
+            for item in raw.get("feedback", [])
+        ]
         return EventRecord(
             event_id=str(raw["event_id"]),
             start_time=datetime.fromisoformat(raw["start_time"]),
@@ -84,4 +96,5 @@ class EventStore:
             classifications=classifications,
             inference_trace=inference_trace,
             decision=decision,
+            feedback=feedback,
         )

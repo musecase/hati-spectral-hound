@@ -1,5 +1,7 @@
 # HATI — Spectral Hound
 
+[![Test HATI](https://github.com/musecase/hati-spectral-hound/actions/workflows/tests.yml/badge.svg)](https://github.com/musecase/hati-spectral-hound/actions/workflows/tests.yml)
+
 HATI (Homestead Autonomous Threat Intervention) is a camera-triggered,
 AI-assisted olfactory predator deterrent for a family poultry flock.
 
@@ -30,13 +32,19 @@ The repository currently contains:
 - atomic local event storage and structured JSON logging
 - simulated raccoon, human, chicken, and low-consensus event flows
 - a one-command, no-hardware judge demo with inspectable sample cases
-- tests for camera discovery, motion zones, event capture, decision safety, and
-  actuator failure handling
+- Telegram event alerts, owner-only feedback, status and dry-run commands, and a
+  bounded manual-deploy path
+- an evaluation gate that promotes an improvement only when it fixes a known case
+  with zero regressions
+- 44 tests for camera discovery, motion zones, event capture, decision safety,
+  Telegram control, evaluation promotion, and actuator failure handling
+- a public, interactive judge site built with the OpenAI Sites production starter
 
 The Foscam camera, first real motion event, GPT-5.6 Luna vision classification,
 deterministic human veto, and water-only physical actuator are verified.
-Notification and judge-facing UI integrations are not yet claimed. Hardware mode
-remains disarmed and test mode remains enabled by default.
+The Telegram integration is implemented and tested with a fake transport; live bot
+registration is the remaining owner setup step. Hardware mode remains disarmed and
+test mode remains enabled by default.
 
 ## Quick start
 
@@ -46,6 +54,7 @@ From PowerShell:
 .\scripts\setup.ps1
 .\scripts\hati.ps1 demo all --config config\hati.example.json
 .\scripts\hati.ps1 doctor --config config/hati.example.json
+.\scripts\hati.ps1 evaluate-improvement --cases sample_data/improvement_cases.json
 .\scripts\test.ps1
 ```
 
@@ -121,6 +130,8 @@ logs, screenshots, or commits.
 See [docs/CAMERA_SETUP.md](docs/CAMERA_SETUP.md) for the first hardware session.
 See [docs/VISION_SETUP.md](docs/VISION_SETUP.md) for the model, credential, and
 verified first-run details.
+See [docs/TELEGRAM_SETUP.md](docs/TELEGRAM_SETUP.md) for owner alerts, feedback,
+safe testing, and bounded manual deployment.
 See [docs/DEMO_PLAN.md](docs/DEMO_PLAN.md) for the honest plush, replay, and
 water-only demonstration sequence. See
 [docs/BUILT_WITH_CODEX.md](docs/BUILT_WITH_CODEX.md) for the GPT-5.6/Codex
@@ -128,7 +139,7 @@ development narrative and key decisions.
 
 ## Product sequence
 
-**SEE → IDENTIFY → VERIFY → ACT**
+**SEE → IDENTIFY → VERIFY → ACT → REVIEW**
 
 Codex builds. Luna sees. HATI decides. The hound acts.
 

@@ -41,6 +41,15 @@ class DecisionOutcome(StrEnum):
     SUPPRESS = "suppress"
 
 
+class FeedbackKind(StrEnum):
+    CORRECT = "correct"
+    FALSE_ALARM = "false_alarm"
+    WRONG_ANIMAL = "wrong_animal"
+    MISSED_THREAT = "missed_threat"
+    INAPPROPRIATE_ACTUATION = "inappropriate_actuation"
+    EXPECTED_ACTUATION_MISSING = "expected_actuation_missing"
+
+
 @dataclass(frozen=True)
 class Classification:
     frame_id: str
@@ -69,6 +78,15 @@ class InferenceTrace:
     total_tokens: int | None = None
 
 
+@dataclass(frozen=True)
+class HumanFeedback:
+    kind: FeedbackKind
+    source: str
+    actor_id: str
+    recorded_at: datetime = field(default_factory=utc_now)
+    note: str | None = None
+
+
 @dataclass
 class EventRecord:
     event_id: str
@@ -82,6 +100,7 @@ class EventRecord:
     classifications: list[Classification] = field(default_factory=list)
     inference_trace: InferenceTrace | None = None
     decision: "DecisionRecord | None" = None
+    feedback: list[HumanFeedback] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

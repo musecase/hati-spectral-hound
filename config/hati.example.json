@@ -46,6 +46,12 @@
     "private_device_config": "config/tuya-device.json",
     "burst_seconds": 5
   },
+  "telegram": {
+    "enabled": false,
+    "owner_chat_id": "",
+    "manual_deploy_enabled": true,
+    "poll_timeout_seconds": 10
+  },
   "runtime": {
     "armed": false,
     "test_mode": true,

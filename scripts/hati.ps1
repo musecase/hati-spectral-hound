@@ -8,6 +8,7 @@ $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $VenvPython = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
 $CredentialPath = Join-Path $ProjectRoot "config\camera-credential.clixml"
 $OpenAIKeyPath = Join-Path $ProjectRoot "config\openai-api-key.clixml"
+$TelegramCredentialPath = Join-Path $ProjectRoot "config\telegram-credential.clixml"
 $PythonRoot = Join-Path $env:LOCALAPPDATA "Programs\Python"
 $Python = if (Test-Path -LiteralPath $VenvPython) {
     Get-Item -LiteralPath $VenvPython
@@ -40,6 +41,15 @@ if ($NeedsOpenAIKey -and (Test-Path -LiteralPath $OpenAIKeyPath)) {
     $OpenAICredential = Import-Clixml -LiteralPath $OpenAIKeyPath
     $env:OPENAI_API_KEY = $OpenAICredential.GetNetworkCredential().Password
 }
+$NeedsTelegramCredential = (
+    $HatiArguments.Count -gt 0 -and
+    $HatiArguments[0] -in @("telegram-notify", "telegram-poll-once")
+)
+if ($NeedsTelegramCredential -and (Test-Path -LiteralPath $TelegramCredentialPath)) {
+    $TelegramCredential = Import-Clixml -LiteralPath $TelegramCredentialPath
+    $env:HATI_TELEGRAM_CHAT_ID = $TelegramCredential.UserName
+    $env:HATI_TELEGRAM_BOT_TOKEN = $TelegramCredential.GetNetworkCredential().Password
+}
 Push-Location $ProjectRoot
 $ExitCode = 1
 try {
@@ -50,6 +60,8 @@ finally {
     Remove-Item Env:HATI_CAMERA_USERNAME -ErrorAction SilentlyContinue
     Remove-Item Env:HATI_CAMERA_PASSWORD -ErrorAction SilentlyContinue
     Remove-Item Env:OPENAI_API_KEY -ErrorAction SilentlyContinue
+    Remove-Item Env:HATI_TELEGRAM_CHAT_ID -ErrorAction SilentlyContinue
+    Remove-Item Env:HATI_TELEGRAM_BOT_TOKEN -ErrorAction SilentlyContinue
     Pop-Location
 }
 exit $ExitCode

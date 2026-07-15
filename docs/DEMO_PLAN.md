@@ -48,7 +48,9 @@ all other demo steps.
 3. Show a real camera event and its saved five-frame trace.
 4. Run the replayed positive vision test and identify it honestly.
 5. Demonstrate the water-only mister loop.
-6. Close with the human veto, fail-closed rules, and offline improvement plan.
+6. Show the Telegram alert, tap one feedback label, and run `/status` or `/test`.
+7. Run `evaluate-improvement` and show the 3/4 → 4/4, zero-regression gate.
+8. Close with the human veto, fail-closed rules, and owner-controlled learning loop.
 
 Do not include identifiable children or private household footage in the public
 repository or submission media without appropriate consent.
