@@ -1,0 +1,33 @@
+{
+  "notice": "Synthetic judge-runnable cases; no camera or model output is claimed.",
+  "cases": [
+    {
+      "scenario": "raccoon",
+      "labels": ["raccoon", "raccoon", "raccoon", "raccoon", "unknown"],
+      "expected_outcome": "authorize",
+      "expected_reason": "PREDATOR_CONSENSUS",
+      "expected_dry_run": true
+    },
+    {
+      "scenario": "human",
+      "labels": ["raccoon", "raccoon", "raccoon", "raccoon", "human"],
+      "expected_outcome": "deny",
+      "expected_reason": "HUMAN_VETO",
+      "expected_dry_run": false
+    },
+    {
+      "scenario": "chicken",
+      "labels": ["chicken", "chicken", "chicken", "chicken", "chicken"],
+      "expected_outcome": "deny",
+      "expected_reason": "LOW_CONSENSUS",
+      "expected_dry_run": false
+    },
+    {
+      "scenario": "low-consensus",
+      "labels": ["raccoon", "raccoon", "unknown", "chicken", "unknown"],
+      "expected_outcome": "deny",
+      "expected_reason": "LOW_CONSENSUS",
+      "expected_dry_run": false
+    }
+  ]
+}

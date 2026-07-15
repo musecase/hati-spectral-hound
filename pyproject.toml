@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hati-spectral-hound"
+version = "0.1.0"
+description = "A bounded, AI-assisted poultry predator deterrence system"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Robyn" }]
+dependencies = [
+  "opencv-python-headless==4.13.0.92",
+  "tinytuya==1.20.0",
+  "openai==2.45.0",
+  "pydantic==2.13.4"
+]
+
+[project.scripts]
+hati = "hati.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

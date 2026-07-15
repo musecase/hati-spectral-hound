@@ -1,0 +1,54 @@
+{
+  "camera": {
+    "camera_id": "coop-g4",
+    "host": "192.0.2.10",
+    "port": 88,
+    "low_bandwidth_path": "/videoSub",
+    "high_quality_path": "/videoMain"
+  },
+  "events": {
+    "event_directory": "data/events",
+    "protected_zones": [
+      "COOP_DOOR_ZONE"
+    ],
+    "frames_per_event": 5
+  },
+  "motion": {
+    "zone_name": "COOP_DOOR_ZONE",
+    "zone_polygon": [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]],
+    "changed_pixel_ratio": 0.025,
+    "pixel_threshold": 25,
+    "blur_size": 5,
+    "poll_interval_seconds": 0.5,
+    "event_frame_interval_seconds": 0.5,
+    "rediscover_camera": true
+  },
+  "decision": {
+    "minimum_usable_observations": 5,
+    "predator_consensus_required": 4,
+    "cooldown_seconds": 600,
+    "predator_labels": [
+      "raccoon",
+      "fox",
+      "coyote",
+      "opossum",
+      "skunk"
+    ]
+  },
+  "vision": {
+    "model": "gpt-5.6-luna",
+    "image_detail": "high",
+    "reasoning_effort": "low",
+    "max_output_tokens": 1200
+  },
+  "actuator": {
+    "kind": "dry_run",
+    "private_device_config": "config/tuya-device.json",
+    "burst_seconds": 5
+  },
+  "runtime": {
+    "armed": false,
+    "test_mode": true,
+    "log_level": "INFO"
+  }
+}

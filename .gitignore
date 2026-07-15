@@ -1,0 +1,42 @@
+# Secrets and local overrides
+.env
+config/hati.local.json
+config/camera-credential.clixml
+config/camera-credential-ready.marker
+config/tuya-cloud-credential.clixml
+config/tuya-device.json
+config/tuya-cloud.json
+config/openai-api-key.clixml
+config/*.clixml
+devices.json
+snapshot.json
+.codex-remote-attachments/
+
+# Runtime data
+data/events/*
+!data/events/.gitkeep
+data/camera_probe/*
+!data/camera_probe/.gitkeep
+data/runtime/*
+data/demo_runs/*
+logs/*
+!logs/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+.cache/
+venv/
+dist/
+build/
+*.egg-info/
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
