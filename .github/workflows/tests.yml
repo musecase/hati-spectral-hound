@@ -23,7 +23,10 @@ jobs:
       - name: Run 44 safety and integration tests
         run: python -m unittest discover -s tests -v
       - name: Prove the controlled improvement gate
-        run: python -m hati evaluate-improvement --cases sample_data/improvement_cases.json
+        run: >-
+          python -m hati evaluate-improvement
+          --config config/hati.example.json
+          --cases sample_data/improvement_cases.json
 
   site:
     name: Judge site build
