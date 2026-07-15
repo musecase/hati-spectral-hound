@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://hati-spectral-hound.sites.openai.com"),
+  metadataBase: new URL("https://hati-spectral-hound.amarygma.chatgpt.site"),
   title: {
     default: "HATI — Spectral Hound",
     template: "%s | HATI",

@@ -125,7 +125,7 @@ API, Next.js/vinext, OpenAI Sites, GitHub Actions.
 ## Submission links and required fields
 
 - Public code: https://github.com/musecase/hati-spectral-hound
-- Public judge site: TODO after Sites deployment
+- Public judge site: https://hati-spectral-hound.amarygma.chatgpt.site
 - Public YouTube video under three minutes: TODO
 - Codex `/feedback` session ID: TODO
 - Submitter type: Individual — confirm

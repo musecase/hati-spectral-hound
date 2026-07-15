@@ -44,5 +44,5 @@ test("keeps verified claims and public links in source", async () => {
   assert.match(experience, /No live raccoon encounter yet/);
   assert.match(experience, /BOT SETUP NEXT/);
   assert.match(page, /images: \[\{ url: "\/og\.png"/);
-  assert.match(layout, /hati-spectral-hound\.sites\.openai\.com/);
+  assert.match(layout, /hati-spectral-hound\.amarygma\.chatgpt\.site/);
 });

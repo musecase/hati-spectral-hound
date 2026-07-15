@@ -2,6 +2,9 @@
 
 [![Test HATI](https://github.com/musecase/hati-spectral-hound/actions/workflows/tests.yml/badge.svg)](https://github.com/musecase/hati-spectral-hound/actions/workflows/tests.yml)
 
+[Interactive judge site](https://hati-spectral-hound.amarygma.chatgpt.site) ·
+[Public repository](https://github.com/musecase/hati-spectral-hound)
+
 HATI (Homestead Autonomous Threat Intervention) is a camera-triggered,
 AI-assisted olfactory predator deterrent for a family poultry flock.
 
