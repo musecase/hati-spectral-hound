@@ -102,36 +102,87 @@ def _dps(response: Any) -> dict[str, Any]:
     return {}
 
 
+def _rgb_matches(requested: Any, reported: Any, *, tolerance: int = 16) -> bool:
+    """Compare the RGB prefix of Tuya color strings despite device normalization."""
+    if not isinstance(requested, str) or not isinstance(reported, str):
+        return False
+    if len(requested) < 6 or len(reported) < 6:
+        return False
+    try:
+        requested_rgb = tuple(
+            int(requested[index : index + 2], 16) for index in (0, 2, 4)
+        )
+        reported_rgb = tuple(
+            int(reported[index : index + 2], 16) for index in (0, 2, 4)
+        )
+    except ValueError:
+        return False
+    return all(
+        abs(expected - actual) <= tolerance
+        for expected, actual in zip(requested_rgb, reported_rgb)
+    )
+
+
 class TuyaDiffuserActuator:
-    """Emit one weak, dark, time-bounded burst and verify shutdown."""
+    """Emit one time-bounded diffuser run and verify power and light shutdown."""
 
     MASTER_POWER_DP = "1"
     LIGHT_DP = "11"
     SPRAY_MODE_DP = "103"
-    WEAK_MODE = "small"
-    MAX_BURST_SECONDS = 5.0
+    VALID_SPRAY_MODES = frozenset({"small", "middle", "large", "big"})
+    VALID_LIGHT_SETTING_DPS = frozenset({"108", "109", "110", "111"})
+    MAX_BURST_SECONDS = 300.0
 
     def __init__(
         self,
         settings: TuyaDeviceSettings,
         *,
-        burst_seconds: float = 5.0,
+        burst_seconds: float = 300.0,
+        spray_mode: str = "big",
+        light_enabled: bool = False,
+        light_dps: dict[str, Any] | None = None,
         client_factory: Callable[[TuyaDeviceSettings], TuyaClient] = _tinytuya_client,
         sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         if not 0 < burst_seconds <= self.MAX_BURST_SECONDS:
-            raise ValueError("Tuya diffuser burst must be greater than 0 and at most 5 seconds")
+            raise ValueError(
+                "Tuya diffuser run must be greater than 0 and at most 300 seconds"
+            )
+        if spray_mode not in self.VALID_SPRAY_MODES:
+            raise ValueError(
+                "Tuya diffuser spray mode must be small, middle, large, or big"
+            )
+        configured_light_dps = dict(light_dps or {})
+        if light_enabled and not configured_light_dps:
+            raise ValueError("Enabled Tuya light requires observed light datapoints")
+        if not set(configured_light_dps).issubset(self.VALID_LIGHT_SETTING_DPS):
+            raise ValueError("Tuya light settings may contain only datapoints 108-111")
         self._settings = settings
         self._burst_seconds = burst_seconds
+        self._spray_mode = spray_mode
+        self._light_enabled = light_enabled
+        self._light_dps = configured_light_dps
         self._client_factory = client_factory
         self._sleep = sleep
         self._logger = logging.getLogger("hati.actuator.tuya_diffuser")
 
     @classmethod
     def from_private_config(
-        cls, path: str | Path, *, burst_seconds: float = 5.0
+        cls,
+        path: str | Path,
+        *,
+        burst_seconds: float = 300.0,
+        spray_mode: str = "big",
+        light_enabled: bool = False,
+        light_dps: dict[str, Any] | None = None,
     ) -> "TuyaDiffuserActuator":
-        return cls(load_tuya_device_settings(path), burst_seconds=burst_seconds)
+        return cls(
+            load_tuya_device_settings(path),
+            burst_seconds=burst_seconds,
+            spray_mode=spray_mode,
+            light_enabled=light_enabled,
+            light_dps=light_dps,
+        )
 
     @property
     def available(self) -> bool:
@@ -145,13 +196,29 @@ class TuyaDiffuserActuator:
             before = _dps(client.status())
             if before.get(self.MASTER_POWER_DP) is not False:
                 raise RuntimeError("Actuator power was not confirmed off before activation")
-            client.set_multiple_values(
-                {
-                    self.MASTER_POWER_DP: True,
-                    self.SPRAY_MODE_DP: self.WEAK_MODE,
-                    self.LIGHT_DP: False,
-                }
+            activation_values = {
+                self.MASTER_POWER_DP: True,
+                self.SPRAY_MODE_DP: self._spray_mode,
+                **self._light_dps,
+                self.LIGHT_DP: self._light_enabled,
+            }
+            client.set_multiple_values(activation_values)
+            active = _dps(client.status())
+            expected_core = {
+                self.MASTER_POWER_DP: True,
+                self.SPRAY_MODE_DP: self._spray_mode,
+                self.LIGHT_DP: self._light_enabled,
+            }
+            core_confirmed = all(
+                active.get(dp) == value for dp, value in expected_core.items()
             )
+            color_confirmed = (
+                not self._light_enabled
+                or "108" not in self._light_dps
+                or _rgb_matches(self._light_dps["108"], active.get("108"))
+            )
+            if not core_confirmed or not color_confirmed:
+                raise RuntimeError("Actuator did not confirm the requested active state")
             self._sleep(self._burst_seconds)
         except Exception as exc:
             activation_error = exc
@@ -188,17 +255,20 @@ class TuyaDiffuserActuator:
                 detail=f"Activation failed safely and shutdown was verified: {type(activation_error).__name__}",
             )
         self._logger.info(
-            "Bounded weak, dark deterrence activation completed",
+            "Bounded deterrence activation completed",
             extra={
                 "event_id": event_id,
                 "duration_seconds": self._burst_seconds,
+                "spray_mode": self._spray_mode,
+                "light_enabled": self._light_enabled,
                 "shutdown_verified": True,
             },
         )
         return ActuatorResult(
             succeeded=True,
             detail=(
-                f"Weak dark burst completed for {self._burst_seconds:g} seconds; "
-                "shutdown verified"
+                f"{self._spray_mode.capitalize()} run with "
+                f"light {'on' if self._light_enabled else 'off'} completed for "
+                f"{self._burst_seconds:g} seconds; shutdown verified"
             ),
         )

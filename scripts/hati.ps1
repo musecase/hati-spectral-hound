@@ -26,7 +26,13 @@ if (-not $Python) {
 $env:PYTHONPATH = Join-Path $ProjectRoot "src"
 $NeedsCameraCredential = (
     $HatiArguments.Count -gt 0 -and
-    $HatiArguments[0] -in @("camera-probe", "watch")
+    $HatiArguments[0] -in @(
+        "camera-probe",
+        "capture-replay",
+        "watch",
+        "run-once",
+        "supervise"
+    )
 )
 if ($NeedsCameraCredential -and (Test-Path -LiteralPath $CredentialPath)) {
     $CameraCredential = Import-Clixml -LiteralPath $CredentialPath
@@ -35,7 +41,13 @@ if ($NeedsCameraCredential -and (Test-Path -LiteralPath $CredentialPath)) {
 }
 $NeedsOpenAIKey = (
     $HatiArguments.Count -gt 0 -and
-    $HatiArguments[0] -eq "classify-event"
+    $HatiArguments[0] -in @(
+        "classify-event",
+        "process-event",
+        "run-once",
+        "supervise",
+        "evaluate-vision-improvement"
+    )
 )
 if ($NeedsOpenAIKey -and (Test-Path -LiteralPath $OpenAIKeyPath)) {
     $OpenAICredential = Import-Clixml -LiteralPath $OpenAIKeyPath
@@ -43,7 +55,14 @@ if ($NeedsOpenAIKey -and (Test-Path -LiteralPath $OpenAIKeyPath)) {
 }
 $NeedsTelegramCredential = (
     $HatiArguments.Count -gt 0 -and
-    $HatiArguments[0] -in @("telegram-notify", "telegram-poll-once")
+    $HatiArguments[0] -in @(
+        "telegram-notify",
+        "telegram-poll-once",
+        "telegram-poll",
+        "process-event",
+        "run-once",
+        "supervise"
+    )
 )
 if ($NeedsTelegramCredential -and (Test-Path -LiteralPath $TelegramCredentialPath)) {
     $TelegramCredential = Import-Clixml -LiteralPath $TelegramCredentialPath

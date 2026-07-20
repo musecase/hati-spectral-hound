@@ -17,9 +17,13 @@ if (-not $Python) {
 
 $env:PYTHONPATH = Join-Path $ProjectRoot "src"
 Push-Location $ProjectRoot
+$ExitCode = 1
 try {
     & $Python.FullName -m unittest discover -s tests -v
+    $ExitCode = $LASTEXITCODE
 }
 finally {
     Pop-Location
 }
+
+exit $ExitCode

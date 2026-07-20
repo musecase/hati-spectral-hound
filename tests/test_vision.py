@@ -64,12 +64,19 @@ class VisionTests(unittest.TestCase):
             )
             client = FakeOpenAI(output)
 
-            result = classify_frames(paths, VisionConfig(), client=client)
+            result = classify_frames(
+                paths,
+                VisionConfig(),
+                client=client,
+                policy_id="candidate-test",
+                policy_addendum="Treat plush decoys as unknown.",
+            )
 
         self.assertEqual(1, len(client.responses.calls))
         request = client.responses.calls[0]
         self.assertEqual("gpt-5.6-luna", request["model"])
         self.assertEqual({"effort": "low"}, request["reasoning"])
+        self.assertIn("Treat plush decoys as unknown", request["input"][0]["content"])
         self.assertFalse(request["store"])
         content = request["input"][1]["content"]
         image_parts = [part for part in content if part["type"] == "input_image"]
@@ -82,6 +89,7 @@ class VisionTests(unittest.TestCase):
         self.assertTrue(result.classifications[0].predator)
         self.assertFalse(result.classifications[0].safe_to_deter)
         self.assertEqual(1, result.trace.request_count)
+        self.assertEqual("candidate-test", result.trace.policy_id)
         self.assertEqual(120, result.trace.total_tokens)
 
     def test_exactly_five_frames_are_required_before_any_request(self) -> None:

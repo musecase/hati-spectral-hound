@@ -1,9 +1,18 @@
 from __future__ import annotations
 
+import sys
+import tempfile
 import unittest
+from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
-from hati.camera import build_rtsp_url, build_snapshot_url, resolve_camera_host
+from hati.camera import (
+    RtspFrameSession,
+    build_rtsp_url,
+    build_snapshot_url,
+    resolve_camera_host,
+)
 from hati.config import CameraConfig
 
 
@@ -49,6 +58,61 @@ class CameraUrlTests(unittest.TestCase):
             candidates=["192.0.2.21", "192.0.2.22"],
         )
         self.assertEqual("192.0.2.22", resolved.host)
+
+    def test_continuous_session_writes_latest_frame_and_clears_password(self) -> None:
+        class FakeFrame:
+            shape = (720, 1280, 3)
+
+            def copy(self):
+                return self
+
+        class FakeVideo:
+            def __init__(self) -> None:
+                self.released = False
+
+            def isOpened(self) -> bool:
+                return True
+
+            def set(self, _property, _value) -> bool:
+                return True
+
+            def read(self):
+                return (not self.released, FakeFrame() if not self.released else None)
+
+            def release(self) -> None:
+                self.released = True
+
+        video = FakeVideo()
+
+        def imwrite(path: str, _frame: FakeFrame) -> bool:
+            Path(path).write_bytes(b"fake-jpeg")
+            return True
+
+        fake_cv2 = SimpleNamespace(
+            CAP_FFMPEG=1,
+            CAP_PROP_OPEN_TIMEOUT_MSEC=2,
+            CAP_PROP_READ_TIMEOUT_MSEC=3,
+            CAP_PROP_BUFFERSIZE=4,
+            VideoCapture=lambda *_args: video,
+            imwrite=imwrite,
+        )
+        camera = CameraConfig(camera_id="test", host="192.0.2.1", port=88)
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "frame.jpg"
+            with patch.dict(sys.modules, {"cv2": fake_cv2}):
+                session = RtspFrameSession(
+                    camera,
+                    "viewer",
+                    "secret",
+                    warmup_frames=0,
+                    startup_timeout_seconds=1,
+                )
+                with session:
+                    capture = session.capture(output)
+            self.assertTrue(output.exists())
+        self.assertEqual((1280, 720), (capture.width, capture.height))
+        self.assertEqual("", session.password)
+        self.assertTrue(video.released)
 
 
 if __name__ == "__main__":

@@ -63,6 +63,14 @@ Observed indoor acceptance result on 2026-07-14: a controlled human doorway pass
 caused a 7.30% zone change and produced one five-frame event with an inspectable
 trace. This is an indoor engineering test, not a coop field result.
 
+Observed outdoor result on 2026-07-15: the final coop view triggered at a 14.51%
+zone change and produced five sharp frames. Reopening the JPEG endpoint for each
+frame stretched the event past one minute, so only the final frame contained the
+owner. GPT-5.6 still identified that frame and the deterministic human veto denied
+action. HATI now opens one RTSP session, discards startup frames until the stream
+stabilizes, continuously drains it, and selects the newest frame at each sample.
+JPEG remains a fallback rather than the normal event-capture path.
+
 ## Field-of-view notes
 
 Prefer a view that makes an approaching animal cross the protected zone for

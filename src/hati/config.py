@@ -7,6 +7,7 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 
 class ConfigurationError(ValueError):
@@ -49,6 +50,7 @@ class MotionConfig:
     blur_size: int = 5
     poll_interval_seconds: float = 0.5
     event_frame_interval_seconds: float = 0.5
+    rearm_quiet_samples: int = 0
     rediscover_camera: bool = True
 
 
@@ -70,6 +72,19 @@ class VisionConfig:
     image_detail: str = "high"
     reasoning_effort: str = "low"
     max_output_tokens: int = 1200
+    active_policy_path: Path = Path("data/learning/active-policy.json")
+
+
+@dataclass(frozen=True)
+class LocalGateConfig:
+    enabled: bool = False
+    shadow_mode: bool = True
+    base_url: str = "http://127.0.0.1:1234/v1"
+    model: str = "google/gemma-4-e4b"
+    timeout_seconds: int = 120
+    max_output_tokens: int = 240
+    minimum_bird_panels: int = 1
+    focus_box: tuple[float, float, float, float] = (0.0, 0.28, 1.0, 0.9)
 
 
 @dataclass(frozen=True)
@@ -83,7 +98,10 @@ class RuntimeConfig:
 class ActuatorConfig:
     kind: str = "dry_run"
     private_device_config: Path = Path("config/tuya-device.json")
-    burst_seconds: float = 5.0
+    burst_seconds: float = 300.0
+    spray_mode: str = "big"
+    light_enabled: bool = False
+    light_dps: tuple[tuple[str, Any], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -102,6 +120,7 @@ class HatiConfig:
     motion: MotionConfig
     decision: DecisionConfig
     vision: VisionConfig
+    local_gate: LocalGateConfig
     actuator: ActuatorConfig
     telegram: TelegramConfig
     runtime: RuntimeConfig
@@ -136,6 +155,9 @@ def load_config(path: str | Path) -> HatiConfig:
     vision_raw = raw.get("vision", {})
     if not isinstance(vision_raw, dict):
         raise ConfigurationError("Configuration section 'vision' must be an object")
+    local_gate_raw = raw.get("local_gate", {})
+    if not isinstance(local_gate_raw, dict):
+        raise ConfigurationError("Configuration section 'local_gate' must be an object")
     actuator_raw = raw.get("actuator", {})
     if not isinstance(actuator_raw, dict):
         raise ConfigurationError("Configuration section 'actuator' must be an object")
@@ -183,6 +205,7 @@ def load_config(path: str | Path) -> HatiConfig:
         event_frame_interval_seconds=float(
             motion_raw.get("event_frame_interval_seconds", 0.5)
         ),
+        rearm_quiet_samples=int(motion_raw.get("rearm_quiet_samples", 0)),
         rediscover_camera=bool(motion_raw.get("rediscover_camera", True)),
     )
     decision = DecisionConfig(
@@ -204,13 +227,40 @@ def load_config(path: str | Path) -> HatiConfig:
             vision_raw.get("reasoning_effort", "low")
         ).strip().lower(),
         max_output_tokens=int(vision_raw.get("max_output_tokens", 1200)),
+        active_policy_path=Path(
+            vision_raw.get("active_policy_path", "data/learning/active-policy.json")
+        ),
     )
+    local_gate = LocalGateConfig(
+        enabled=bool(local_gate_raw.get("enabled", False)),
+        shadow_mode=bool(local_gate_raw.get("shadow_mode", True)),
+        base_url=str(
+            local_gate_raw.get("base_url", "http://127.0.0.1:1234/v1")
+        ).rstrip("/"),
+        model=str(local_gate_raw.get("model", "google/gemma-4-e4b")).strip(),
+        timeout_seconds=int(local_gate_raw.get("timeout_seconds", 120)),
+        max_output_tokens=int(local_gate_raw.get("max_output_tokens", 240)),
+        minimum_bird_panels=int(local_gate_raw.get("minimum_bird_panels", 1)),
+        focus_box=tuple(
+            float(value)
+            for value in local_gate_raw.get("focus_box", [0.0, 0.28, 1.0, 0.9])
+        ),
+    )
+    light_raw = actuator_raw.get("light", {})
+    if not isinstance(light_raw, dict):
+        raise ConfigurationError("Configuration section 'actuator.light' must be an object")
+    light_dps_raw = light_raw.get("dps", {})
+    if not isinstance(light_dps_raw, dict):
+        raise ConfigurationError("actuator.light.dps must be an object")
     actuator = ActuatorConfig(
         kind=str(actuator_raw.get("kind", "dry_run")).strip().lower(),
         private_device_config=Path(
             actuator_raw.get("private_device_config", "config/tuya-device.json")
         ),
-        burst_seconds=float(actuator_raw.get("burst_seconds", 5.0)),
+        burst_seconds=float(actuator_raw.get("burst_seconds", 300.0)),
+        spray_mode=str(actuator_raw.get("spray_mode", "big")).strip().lower(),
+        light_enabled=bool(light_raw.get("enabled", False)),
+        light_dps=tuple((str(key), value) for key, value in light_dps_raw.items()),
     )
     telegram = TelegramConfig(
         enabled=bool(telegram_raw.get("enabled", False)),
@@ -223,7 +273,7 @@ def load_config(path: str | Path) -> HatiConfig:
             telegram_raw.get("manual_deploy_enabled", True)
         ),
         poll_timeout_seconds=int(telegram_raw.get("poll_timeout_seconds", 10)),
-        token=os.environ.get("HATI_TELEGRAM_BOT_TOKEN"),
+        token=os.environ.get("HATI_TELEGRAM_BOT_TOKEN") or None,
     )
     runtime = RuntimeConfig(
         armed=bool(runtime_raw.get("armed", False)),
@@ -231,13 +281,23 @@ def load_config(path: str | Path) -> HatiConfig:
         log_level=str(runtime_raw.get("log_level", "INFO")).upper(),
     )
 
-    _validate(camera, events, motion, decision, vision, actuator, telegram)
+    _validate(
+        camera,
+        events,
+        motion,
+        decision,
+        vision,
+        local_gate,
+        actuator,
+        telegram,
+    )
     return HatiConfig(
         camera=camera,
         events=events,
         motion=motion,
         decision=decision,
         vision=vision,
+        local_gate=local_gate,
         actuator=actuator,
         telegram=telegram,
         runtime=runtime,
@@ -250,6 +310,7 @@ def _validate(
     motion: MotionConfig,
     decision: DecisionConfig,
     vision: VisionConfig,
+    local_gate: LocalGateConfig,
     actuator: ActuatorConfig,
     telegram: TelegramConfig,
 ) -> None:
@@ -275,6 +336,8 @@ def _validate(
         raise ConfigurationError("motion.blur_size must be a positive odd number")
     if motion.poll_interval_seconds < 0 or motion.event_frame_interval_seconds < 0:
         raise ConfigurationError("motion intervals cannot be negative")
+    if not 0 <= motion.rearm_quiet_samples <= 120:
+        raise ConfigurationError("motion.rearm_quiet_samples must be between 0 and 120")
     if decision.minimum_usable_observations < 1:
         raise ConfigurationError("minimum_usable_observations must be positive")
     if decision.predator_consensus_required < 1:
@@ -301,13 +364,56 @@ def _validate(
         raise ConfigurationError("vision.reasoning_effort is unsupported")
     if not 1 <= vision.max_output_tokens <= 4000:
         raise ConfigurationError("vision.max_output_tokens must be between 1 and 4000")
+    gate_url = urlparse(local_gate.base_url)
+    if gate_url.scheme != "http" or gate_url.hostname not in {
+        "127.0.0.1",
+        "localhost",
+        "::1",
+    }:
+        raise ConfigurationError("local_gate.base_url must be a loopback HTTP address")
+    if not local_gate.model:
+        raise ConfigurationError("local_gate.model must not be empty")
+    if not 1 <= local_gate.timeout_seconds <= 600:
+        raise ConfigurationError("local_gate.timeout_seconds must be between 1 and 600")
+    if not 32 <= local_gate.max_output_tokens <= 1000:
+        raise ConfigurationError(
+            "local_gate.max_output_tokens must be between 32 and 1000"
+        )
+    if not 1 <= local_gate.minimum_bird_panels <= events.frames_per_event:
+        raise ConfigurationError(
+            "local_gate.minimum_bird_panels must fit within one event"
+        )
+    if (
+        len(local_gate.focus_box) != 4
+        or any(not 0 <= value <= 1 for value in local_gate.focus_box)
+        or local_gate.focus_box[0] >= local_gate.focus_box[2]
+        or local_gate.focus_box[1] >= local_gate.focus_box[3]
+    ):
+        raise ConfigurationError(
+            "local_gate.focus_box must be normalized [left, top, right, bottom]"
+        )
     if actuator.kind not in {"dry_run", "tuya_diffuser"}:
         raise ConfigurationError("actuator.kind must be 'dry_run' or 'tuya_diffuser'")
-    if not 0 < actuator.burst_seconds <= 5:
-        raise ConfigurationError("actuator.burst_seconds must be greater than 0 and at most 5")
-    if telegram.enabled and not telegram.owner_chat_id:
-        raise ConfigurationError("telegram.owner_chat_id is required when Telegram is enabled")
-    if telegram.enabled and not telegram.token:
-        raise ConfigurationError("HATI_TELEGRAM_BOT_TOKEN is required when Telegram is enabled")
+    if not 0 < actuator.burst_seconds <= 300:
+        raise ConfigurationError(
+            "actuator.burst_seconds must be greater than 0 and at most 300"
+        )
+    if actuator.spray_mode not in {"small", "middle", "large", "big"}:
+        raise ConfigurationError(
+            "actuator.spray_mode must be small, middle, large, or big"
+        )
+    light_dps = dict(actuator.light_dps)
+    if actuator.light_enabled and not light_dps:
+        raise ConfigurationError(
+            "actuator.light.dps must contain the observed light settings when enabled"
+        )
+    if not set(light_dps).issubset({"108", "109", "110", "111"}):
+        raise ConfigurationError(
+            "actuator.light.dps may contain only Tuya light datapoints 108-111"
+        )
+    if any(
+        isinstance(value, (dict, list)) or value is None for value in light_dps.values()
+    ):
+        raise ConfigurationError("actuator.light.dps values must be JSON scalars")
     if not 0 <= telegram.poll_timeout_seconds <= 30:
         raise ConfigurationError("telegram.poll_timeout_seconds must be between 0 and 30")
