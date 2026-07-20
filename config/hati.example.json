@@ -21,6 +21,7 @@
     "blur_size": 5,
     "poll_interval_seconds": 0.5,
     "event_frame_interval_seconds": 0.5,
+    "rearm_quiet_samples": 6,
     "rediscover_camera": true
   },
   "decision": {
@@ -39,12 +40,28 @@
     "model": "gpt-5.6-luna",
     "image_detail": "high",
     "reasoning_effort": "low",
-    "max_output_tokens": 1200
+    "max_output_tokens": 1200,
+    "active_policy_path": "data/learning/active-policy.json"
+  },
+  "local_gate": {
+    "enabled": false,
+    "shadow_mode": true,
+    "base_url": "http://127.0.0.1:1234/v1",
+    "model": "google/gemma-4-e4b",
+    "timeout_seconds": 120,
+    "max_output_tokens": 240,
+    "minimum_bird_panels": 1,
+    "focus_box": [0.0, 0.28, 1.0, 0.9]
   },
   "actuator": {
     "kind": "dry_run",
     "private_device_config": "config/tuya-device.json",
-    "burst_seconds": 5
+    "burst_seconds": 300,
+    "spray_mode": "big",
+    "light": {
+      "enabled": false,
+      "dps": {}
+    }
   },
   "telegram": {
     "enabled": false,

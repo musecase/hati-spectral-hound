@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import os
 import re
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Callable, Protocol
+from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -76,6 +78,18 @@ class UrlLibTelegramTransport:
         try:
             with urlopen(request, timeout=35) as response:
                 payload = json.loads(response.read().decode("utf-8"))
+        except HTTPError as exc:
+            description = ""
+            try:
+                error_payload = json.loads(exc.read().decode("utf-8"))
+                if isinstance(error_payload, dict):
+                    description = str(error_payload.get("description", ""))
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                pass
+            detail = f"HTTP {exc.code}"
+            if description:
+                detail += f": {description}"
+            raise TelegramError(f"Telegram request failed: {detail}") from exc
         except Exception as exc:
             raise TelegramError(f"Telegram request failed: {type(exc).__name__}") from exc
         if not isinstance(payload, dict) or payload.get("ok") is not True:
@@ -134,10 +148,11 @@ def event_message(event: EventRecord) -> str:
 
 
 def feedback_keyboard(event_id: str) -> dict[str, Any]:
-    def button(label: str, kind: FeedbackKind) -> dict[str, str]:
+    def button(label: str, value: str | FeedbackKind) -> dict[str, str]:
+        callback_value = value.value if isinstance(value, FeedbackKind) else value
         return {
             "text": label,
-            "callback_data": f"{CALLBACK_PREFIX}{event_id}:{kind.value}",
+            "callback_data": f"{CALLBACK_PREFIX}{event_id}:{callback_value}",
         }
 
     return {
@@ -146,7 +161,15 @@ def feedback_keyboard(event_id: str) -> dict[str, Any]:
                 button("Correct", FeedbackKind.CORRECT),
                 button("False alarm", FeedbackKind.FALSE_ALARM),
             ],
-            [button("Wrong animal", FeedbackKind.WRONG_ANIMAL)],
+            [
+                button("Raccoon", "label_raccoon"),
+                button("Opossum", "label_opossum"),
+                button("Skunk", "label_skunk"),
+            ],
+            [
+                button("Wrong animal", FeedbackKind.WRONG_ANIMAL),
+                button("Animal unknown", "unknown"),
+            ],
         ]
     }
 
@@ -233,10 +256,15 @@ class TelegramController:
         config: TelegramConfig,
         store: EventStore,
         actuator: Actuator,
+        *,
+        runtime_armed: bool = False,
+        test_mode: bool = True,
     ) -> None:
         self.config = config
         self.store = store
         self.actuator = actuator
+        self.runtime_armed = runtime_armed
+        self.test_mode = test_mode
 
     def handle(self, update: dict[str, Any]) -> TelegramAction:
         chat_id = _chat_id(update)
@@ -253,6 +281,10 @@ class TelegramController:
         if command == "/deploy":
             if not self.config.manual_deploy_enabled:
                 return TelegramAction("manual_deploy", False, "Manual deployment is disabled")
+            if not self.runtime_armed:
+                return TelegramAction("manual_deploy", False, "HATI is disarmed")
+            if self.test_mode:
+                return TelegramAction("manual_deploy", False, "HATI is in test mode")
             update_id = str(update.get("update_id", "unknown"))
             result = self.actuator.activate(f"manual-telegram-{update_id}")
             return TelegramAction(
@@ -270,8 +302,15 @@ class TelegramController:
             )
         if command == "/status":
             state = "enabled" if self.config.manual_deploy_enabled else "disabled"
+            runtime = "armed" if self.runtime_armed else "disarmed"
+            mode = "test mode" if self.test_mode else "live mode"
             return TelegramAction(
-                "status", True, f"HATI operator link online; manual deployment {state}"
+                "status",
+                True,
+                (
+                    f"HATI operator link online; manual deployment {state}; "
+                    f"runtime {runtime}; {mode}"
+                ),
             )
         return TelegramAction("ignored", False, "No supported command or feedback")
 
@@ -280,9 +319,20 @@ class TelegramController:
         if not data.startswith(CALLBACK_PREFIX):
             return TelegramAction("ignored", False, "Unknown callback")
         remainder = data[len(CALLBACK_PREFIX) :]
+        feedback_note = None
         try:
             event_id, kind_raw = remainder.rsplit(":", 1)
-            kind = FeedbackKind(kind_raw)
+            if kind_raw == "unknown":
+                kind = FeedbackKind.WRONG_ANIMAL
+                feedback_note = "expected_label=unknown"
+            elif kind_raw.startswith("label_"):
+                expected_label = kind_raw.removeprefix("label_")
+                if expected_label not in {"raccoon", "opossum", "skunk"}:
+                    raise ValueError("Unsupported expected animal")
+                kind = FeedbackKind.WRONG_ANIMAL
+                feedback_note = f"expected_label={expected_label}"
+            else:
+                kind = FeedbackKind(kind_raw)
         except (ValueError, TypeError):
             return TelegramAction("feedback", False, "Invalid feedback payload")
         if not SAFE_EVENT_ID.fullmatch(event_id):
@@ -293,12 +343,41 @@ class TelegramController:
         except (OSError, ValueError, KeyError, json.JSONDecodeError):
             return TelegramAction("feedback", False, "Event trace was not found")
         actor_id = str(callback.get("from", {}).get("id", self.config.owner_chat_id))
-        event.feedback.append(
-            HumanFeedback(kind=kind, source="telegram", actor_id=actor_id)
+        existing_index = next(
+            (
+                index
+                for index, item in enumerate(event.feedback)
+                if item.kind is kind
+                and item.source == "telegram"
+                and item.actor_id == actor_id
+            ),
+            None,
         )
+        if existing_index is not None and (
+            feedback_note is None
+            or event.feedback[existing_index].note == feedback_note
+        ):
+            return TelegramAction(
+                "feedback", True, f"Already recorded {kind.value}", event_id=event_id
+            )
+        feedback = HumanFeedback(
+            kind=kind,
+            source="telegram",
+            actor_id=actor_id,
+            note=feedback_note,
+        )
+        if existing_index is None:
+            event.feedback.append(feedback)
+        else:
+            event.feedback[existing_index] = feedback
         self.store.save(event)
+        detail = f"Recorded {kind.value}"
+        if feedback_note == "expected_label=unknown":
+            detail += " with unknown expected animal"
+        elif feedback_note and feedback_note.startswith("expected_label="):
+            detail += f" with expected animal {feedback_note.partition('=')[2]}"
         return TelegramAction(
-            "feedback", True, f"Recorded {kind.value}", event_id=event_id
+            "feedback", True, detail, event_id=event_id
         )
 
 
@@ -316,3 +395,91 @@ def _chat_id(update: dict[str, Any]) -> str:
         if isinstance(chat, dict):
             return str(chat.get("id", ""))
     return ""
+
+
+@dataclass(frozen=True)
+class TelegramBatch:
+    processed: int
+    next_offset: int | None
+    results: tuple[dict[str, Any], ...]
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "processed": self.processed,
+            "next_offset": self.next_offset,
+            "results": list(self.results),
+        }
+
+
+def process_updates(
+    client: TelegramClient,
+    controller: TelegramController,
+    updates: list[dict[str, Any]],
+    offset: int | None = None,
+    commit_offset: Callable[[int], None] | None = None,
+) -> TelegramBatch:
+    """Handle one ordered batch with optional at-most-once offset commits."""
+    results: list[dict[str, Any]] = []
+    next_offset = offset
+    for update in updates:
+        update_id = int(update.get("update_id", 0))
+        next_offset = max(next_offset or 0, update_id + 1)
+        # Commit before any owner-command side effect. Losing a command after a
+        # crash is safer than replaying a physical deployment.
+        if commit_offset is not None:
+            commit_offset(next_offset)
+        action = controller.handle(update)
+        callback = update.get("callback_query")
+        callback_acknowledged: bool | None = None
+        if isinstance(callback, dict) and callback.get("id"):
+            try:
+                client.answer_callback(str(callback["id"]), action.detail)
+                callback_acknowledged = True
+            except TelegramError:
+                # Telegram expires callback query IDs quickly. The owner review
+                # is already durably stored, so a stale UI acknowledgement must
+                # not discard the feedback or block later updates.
+                callback_acknowledged = False
+        elif action.kind != "ignored":
+            client.send_text(action.detail)
+        result = {
+            "update_id": update_id,
+            "kind": action.kind,
+            "accepted": action.accepted,
+            "detail": action.detail,
+            "event_id": action.event_id,
+        }
+        if callback_acknowledged is not None:
+            result["callback_acknowledged"] = callback_acknowledged
+        results.append(result)
+    return TelegramBatch(len(results), next_offset, tuple(results))
+
+
+class TelegramOffsetStore:
+    """Atomic restart state so owner commands are never replayed."""
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+
+    def load(self) -> int | None:
+        if not self.path.exists():
+            return None
+        try:
+            raw = json.loads(self.path.read_text(encoding="utf-8"))
+            offset = int(raw["next_offset"])
+        except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
+            raise TelegramError("Telegram offset state is invalid") from exc
+        if offset < 0:
+            raise TelegramError("Telegram offset state is invalid")
+        return offset
+
+    def save(self, offset: int) -> None:
+        if offset < 0:
+            raise ValueError("Telegram offset cannot be negative")
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = self.path.with_suffix(self.path.suffix + ".tmp")
+        temporary.write_text(
+            json.dumps({"next_offset": offset}, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        os.replace(temporary, self.path)

@@ -31,6 +31,7 @@ class ProcessingState(StrEnum):
     CAPTURED = "captured"
     CLASSIFIED = "classified"
     DECIDED = "decided"
+    ACTUATING = "actuating"
     ACTUATED = "actuated"
     FAILED = "failed"
 
@@ -73,9 +74,37 @@ class InferenceTrace:
     image_detail: str
     reasoning_effort: str
     request_count: int
+    policy_id: str = "baseline"
     input_tokens: int | None = None
     output_tokens: int | None = None
     total_tokens: int | None = None
+
+
+@dataclass(frozen=True)
+class LocalGateTrace:
+    """Auditable local-only recommendation; never an actuation authority."""
+
+    provider: str
+    model: str
+    api: str
+    mode: str
+    recommendation: str
+    eligible_to_skip: bool
+    panel_labels: tuple[str, ...] = ()
+    panel_certainties: tuple[str, ...] = ()
+    human_present: bool = False
+    mammal_present: bool = False
+    bird_present: bool = False
+    uncertain: bool = True
+    reason: str = ""
+    contact_sheet_path: Path | None = None
+    focus_sheet_path: Path | None = None
+    request_count: int = 0
+    latency_ms: int | None = None
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+    total_tokens: int | None = None
+    error_type: str | None = None
 
 
 @dataclass(frozen=True)
@@ -85,6 +114,17 @@ class HumanFeedback:
     actor_id: str
     recorded_at: datetime = field(default_factory=utc_now)
     note: str | None = None
+
+
+@dataclass(frozen=True)
+class ActuationRecord:
+    """Durable evidence of the one permitted actuator attempt for an event."""
+
+    attempted_at: datetime
+    completed_at: datetime | None
+    succeeded: bool | None
+    detail: str
+    physical_action: bool
 
 
 @dataclass
@@ -98,8 +138,10 @@ class EventRecord:
     frame_paths: list[Path] = field(default_factory=list)
     processing_state: ProcessingState = ProcessingState.CAPTURED
     classifications: list[Classification] = field(default_factory=list)
+    local_gate_trace: LocalGateTrace | None = None
     inference_trace: InferenceTrace | None = None
     decision: "DecisionRecord | None" = None
+    actuation: ActuationRecord | None = None
     feedback: list[HumanFeedback] = field(default_factory=list)
 
 

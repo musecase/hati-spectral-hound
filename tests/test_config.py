@@ -80,6 +80,14 @@ class ConfigTests(unittest.TestCase):
             with self.assertRaises(ConfigurationError):
                 load_config(path)
 
+    def test_motion_rearm_quiet_samples_are_bounded(self) -> None:
+        invalid = json.loads(json.dumps(VALID_CONFIG))
+        invalid["motion"] = {"rearm_quiet_samples": -1}
+        with tempfile.TemporaryDirectory() as temporary:
+            path = self.write_config(Path(temporary), invalid)
+            with self.assertRaises(ConfigurationError):
+                load_config(path)
+
     def test_vision_detail_must_be_supported(self) -> None:
         invalid = json.loads(json.dumps(VALID_CONFIG))
         invalid["vision"] = {"image_detail": "microscopic"}
@@ -87,6 +95,72 @@ class ConfigTests(unittest.TestCase):
             path = self.write_config(Path(temporary), invalid)
             with self.assertRaises(ConfigurationError):
                 load_config(path)
+
+    def test_actuator_spray_mode_must_be_supported(self) -> None:
+        invalid = json.loads(json.dumps(VALID_CONFIG))
+        invalid["actuator"] = {
+            "burst_seconds": 300,
+            "spray_mode": "ludicrous",
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            path = self.write_config(Path(temporary), invalid)
+            with self.assertRaises(ConfigurationError):
+                load_config(path)
+
+    def test_enabled_actuator_light_requires_observed_datapoints(self) -> None:
+        invalid = json.loads(json.dumps(VALID_CONFIG))
+        invalid["actuator"] = {"light": {"enabled": True, "dps": {}}}
+        with tempfile.TemporaryDirectory() as temporary:
+            path = self.write_config(Path(temporary), invalid)
+            with self.assertRaises(ConfigurationError):
+                load_config(path)
+
+    def test_local_gate_must_remain_on_loopback(self) -> None:
+        invalid = json.loads(json.dumps(VALID_CONFIG))
+        invalid["local_gate"] = {
+            "enabled": True,
+            "base_url": "https://example.com/v1",
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            path = self.write_config(Path(temporary), invalid)
+            with self.assertRaises(ConfigurationError):
+                load_config(path)
+
+    def test_local_gate_can_enable_benign_suppression(self) -> None:
+        enforcing = json.loads(json.dumps(VALID_CONFIG))
+        enforcing["local_gate"] = {
+            "enabled": True,
+            "shadow_mode": False,
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            path = self.write_config(Path(temporary), enforcing)
+            config = load_config(path)
+
+        self.assertTrue(config.local_gate.enabled)
+        self.assertFalse(config.local_gate.shadow_mode)
+
+    def test_local_gate_focus_box_must_be_normalized(self) -> None:
+        invalid = json.loads(json.dumps(VALID_CONFIG))
+        invalid["local_gate"] = {"focus_box": [0, 0.2, 1.4, 1]}
+        with tempfile.TemporaryDirectory() as temporary:
+            path = self.write_config(Path(temporary), invalid)
+            with self.assertRaises(ConfigurationError):
+                load_config(path)
+
+    def test_non_telegram_commands_can_load_without_telegram_secrets(self) -> None:
+        local = json.loads(json.dumps(VALID_CONFIG))
+        local["telegram"] = {"enabled": True, "manual_deploy_enabled": False}
+        with tempfile.TemporaryDirectory() as temporary:
+            path = self.write_config(Path(temporary), local)
+            with patch.dict(
+                os.environ,
+                {"HATI_TELEGRAM_CHAT_ID": "", "HATI_TELEGRAM_BOT_TOKEN": ""},
+                clear=False,
+            ):
+                config = load_config(path)
+        self.assertTrue(config.telegram.enabled)
+        self.assertEqual("", config.telegram.owner_chat_id)
+        self.assertIsNone(config.telegram.token)
 
 
 if __name__ == "__main__":

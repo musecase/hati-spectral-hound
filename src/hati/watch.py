@@ -99,7 +99,39 @@ def watch_once(
         status,
     )
     previous = _read_frame(previous_path)
-    status("Baseline ready. Walk through the camera frame now.")
+
+    if motion.rearm_quiet_samples:
+        quiet_samples = 0
+        status(
+            "Waiting for a quiet scene before arming motion capture; "
+            "local comparisons only, no model calls."
+        )
+        while quiet_samples < motion.rearm_quiet_samples:
+            sleeper(motion.poll_interval_seconds)
+            _capture_with_retry(
+                snapshotter,
+                camera,
+                username,
+                password,
+                current_path,
+                sleeper,
+                status,
+            )
+            current = _read_frame(current_path)
+            quiet_result = measure_motion(previous, current, motion)
+            if quiet_result.triggered:
+                quiet_samples = 0
+            else:
+                quiet_samples += 1
+            status(
+                f"Quiet check {quiet_samples}/{motion.rearm_quiet_samples}: "
+                f"{quiet_result.changed_pixel_ratio:.3%} changed "
+                f"(limit {motion.changed_pixel_ratio:.3%})"
+            )
+            previous = current
+            os.replace(current_path, previous_path)
+
+    status("Quiet baseline ready. HATI is watching for a new motion event.")
 
     sample_count = 0
     while max_samples <= 0 or sample_count < max_samples:

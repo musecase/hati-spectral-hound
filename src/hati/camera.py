@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from dataclasses import replace
@@ -28,6 +30,163 @@ class FrameCapture:
     height: int
     captured_at: datetime
     stream_name: str
+
+
+class RtspFrameSession:
+    """Continuously drain RTSP and expose only the newest decoded frame."""
+
+    def __init__(
+        self,
+        camera: CameraConfig,
+        username: str,
+        password: str,
+        *,
+        stream_name: str = "videoSub",
+        warmup_frames: int = 60,
+        startup_timeout_seconds: float = 12.0,
+        frame_timeout_seconds: float = 8.0,
+    ) -> None:
+        self.camera = camera
+        self.username = username
+        self.password = password
+        self.stream_name = stream_name
+        self.warmup_frames = warmup_frames
+        self.startup_timeout_seconds = startup_timeout_seconds
+        self.frame_timeout_seconds = frame_timeout_seconds
+        self._condition = threading.Condition()
+        self._stop = threading.Event()
+        self._video = None
+        self._thread: threading.Thread | None = None
+        self._frame = None
+        self._sequence = 0
+        self._delivered_sequence = 0
+        self._failure: str | None = None
+        self._cv2 = None
+
+    def __enter__(self) -> "RtspFrameSession":
+        try:
+            import cv2
+        except ImportError as exc:
+            raise CameraError(
+                "OpenCV is not installed. Run scripts/setup.ps1 first."
+            ) from exc
+
+        url = build_rtsp_url(
+            self.camera,
+            self.username,
+            self.password,
+            self.stream_name,
+        )
+        previous_options = os.environ.get("OPENCV_FFMPEG_CAPTURE_OPTIONS")
+        os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = (
+            "rtsp_transport;tcp|fflags;nobuffer"
+        )
+        parameters = [
+            cv2.CAP_PROP_OPEN_TIMEOUT_MSEC,
+            8_000,
+            cv2.CAP_PROP_READ_TIMEOUT_MSEC,
+            8_000,
+        ]
+        video = None
+        try:
+            video = cv2.VideoCapture(url, cv2.CAP_FFMPEG, parameters)
+        finally:
+            if previous_options is None:
+                os.environ.pop("OPENCV_FFMPEG_CAPTURE_OPTIONS", None)
+            else:
+                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = previous_options
+            url = ""
+        if video is None or not video.isOpened():
+            if video is not None:
+                video.release()
+            raise CameraError("The continuous camera stream did not open")
+        video.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        self._cv2 = cv2
+        self._video = video
+        self._thread = threading.Thread(
+            target=self._read_forever,
+            name="hati-rtsp-reader",
+            daemon=True,
+        )
+        self._thread.start()
+
+        deadline = time.monotonic() + self.startup_timeout_seconds
+        with self._condition:
+            while self._frame is None and self._failure is None:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    break
+                self._condition.wait(remaining)
+        if self._frame is None:
+            detail = self._failure or "no decoded frame arrived before timeout"
+            self.close()
+            raise CameraError(f"The continuous camera stream produced no usable frame: {detail}")
+        return self
+
+    def __exit__(self, exc_type, exc, traceback) -> None:
+        self.close()
+
+    def _read_forever(self) -> None:
+        successful_frames = 0
+        consecutive_failures = 0
+        while not self._stop.is_set():
+            succeeded, frame = self._video.read()
+            if not succeeded or frame is None:
+                consecutive_failures += 1
+                if consecutive_failures >= 30:
+                    with self._condition:
+                        self._failure = "the stream stopped returning decoded frames"
+                        self._condition.notify_all()
+                    return
+                continue
+            consecutive_failures = 0
+            successful_frames += 1
+            if successful_frames <= self.warmup_frames:
+                continue
+            with self._condition:
+                self._frame = frame
+                self._sequence += 1
+                self._condition.notify_all()
+
+    def capture(self, output_path: Path) -> FrameCapture:
+        """Write a fresh frame without reopening or falling behind the stream."""
+        deadline = time.monotonic() + self.frame_timeout_seconds
+        with self._condition:
+            while (
+                self._sequence <= self._delivered_sequence
+                and self._failure is None
+            ):
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    break
+                self._condition.wait(remaining)
+            if self._sequence <= self._delivered_sequence or self._frame is None:
+                detail = self._failure or "a fresh frame did not arrive before timeout"
+                raise CameraError(f"Continuous camera capture failed: {detail}")
+            frame = self._frame.copy()
+            self._delivered_sequence = self._sequence
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = output_path.with_name(output_path.stem + ".tmp" + output_path.suffix)
+        if not self._cv2.imwrite(str(temporary), frame):
+            raise CameraError(f"Failed to encode captured frame for {output_path}")
+        os.replace(temporary, output_path)
+        height, width = frame.shape[:2]
+        return FrameCapture(
+            path=output_path,
+            width=int(width),
+            height=int(height),
+            captured_at=datetime.now(timezone.utc),
+            stream_name=self.stream_name,
+        )
+
+    def close(self) -> None:
+        self._stop.set()
+        if self._video is not None:
+            self._video.release()
+        if self._thread is not None and self._thread.is_alive():
+            self._thread.join(timeout=2.0)
+        self.password = ""
 
 
 def _probe_camera_host(

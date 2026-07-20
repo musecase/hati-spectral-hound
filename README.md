@@ -22,32 +22,48 @@ multi-frame agreement is required, and every decision is recorded.
 The repository currently contains:
 
 - human-readable JSON configuration with secrets supplied only by environment variables
-- authenticated Foscam JPEG capture with RTSP fallback
+- low-latency continuous Foscam RTSP capture with startup warmup and authenticated
+  JPEG fallback
 - authenticated `/24` camera rediscovery when DHCP changes the address
 - configurable normalized polygon zones and local frame-difference motion detection
 - one-event watching with a pre-trigger frame and exactly five event frames
 - one-request, five-frame GPT-5.6 Luna vision classification with structured output
   and recorded token usage
+- an LM Studio/Gemma 4 E4B local gate with bounded `clear` / `likely` /
+  `uncertain` output; the owner deployment may suppress Luna only for a clear
+  resident-bird event or a clear/likely human veto, and can never authorize action
+- one continuous `supervise` runtime connecting motion capture, vision,
+  deterministic policy, bounded actuation, audit storage, Telegram review, and
+  automatic recovery; `run-once` remains available for controlled demonstrations
 - typed event, observation, system-state, and decision records
 - deterministic temporal consensus and authorization logic
-- a real local Tuya 3.5 diffuser actuator with weak mode, forced-dark operation,
-  a five-second hard cap, unconditional shutdown attempts, and off-state verification
+- a real local Tuya 3.5 diffuser actuator with configurable mist strength and
+  optional observed RGB settings, a five-minute hard cap, unconditional shutdown
+  attempts, active-state confirmation, and off-state verification
 - atomic local event storage and structured JSON logging
 - simulated raccoon, human, chicken, and low-consensus event flows
 - a one-command, no-hardware judge demo with inspectable sample cases
 - Telegram event alerts, owner-only feedback, status and dry-run commands, and a
   bounded manual-deploy path
-- an evaluation gate that promotes an improvement only when it fixes a known case
-  with zero regressions
-- 44 tests for camera discovery, motion zones, event capture, decision safety,
+- restart-safe actuation reservations and cooldown reconstruction from durable event
+  traces, preventing command replay after a crash or restart
+- a feedback-driven learning path that protects confirmed behavior, proposes only
+  conservative false-alarm prompt candidates, reruns bounded real event frames,
+  and promotes only after a correction with zero protected-case regressions
+- 95 tests for camera discovery, motion zones, event capture, continuous recovery,
+  decision safety,
   Telegram control, evaluation promotion, and actuator failure handling
 - a public, interactive judge site built with the OpenAI Sites production starter
 
-The Foscam camera, first real motion event, GPT-5.6 Luna vision classification,
-deterministic human veto, and water-only physical actuator are verified.
-The Telegram integration is implemented and tested with a fake transport; live bot
-registration is the remaining owner setup step. Hardware mode remains disarmed and
-test mode remains enabled by default.
+The final coop view has completed a real outdoor owner-pass loop: motion capture,
+one five-image GPT-5.6 Luna request, deterministic `HUMAN_VETO`, Telegram photo
+alert, and owner `correct` feedback stored in the event trace. The water-only
+physical actuator is also verified.
+The live Telegram owner link has completed authenticated `/status` and feedback
+round trips.
+Its restart-safe poller stores only the last processed update ID locally; secrets
+remain Windows-user encrypted and ignored by Git. Hardware mode remains disarmed
+and test mode remains enabled by default.
 
 ## Quick start
 
@@ -58,6 +74,8 @@ From PowerShell:
 .\scripts\hati.ps1 demo all --config config\hati.example.json
 .\scripts\hati.ps1 doctor --config config/hati.example.json
 .\scripts\hati.ps1 evaluate-improvement --cases sample_data/improvement_cases.json
+.\scripts\learn-from-latest-event.ps1
+.\scripts\start-hati.ps1
 .\scripts\test.ps1
 ```
 
@@ -67,6 +85,29 @@ network, or physical hardware, and writes inspectable JSON traces beneath
 `data/demo_runs/`. Runtime traces are ignored by Git by default.
 The published synthetic cases are in
 [sample_data/eval_cases.json](sample_data/eval_cases.json).
+
+`learn-from-latest-event.ps1` is the owner-controlled improvement loop. Correct
+feedback becomes a protected regression example without a model call. A reviewed
+false alarm may create a conservative observer-prompt candidate; HATI reruns the
+source frames and up to three protected real events, records token-bounded model
+calls, and writes an active policy only when the miss is corrected with zero
+regressions. Missed-threat feedback cannot loosen actuation automatically. The
+human veto and deterministic authorization boundary are never editable by this
+loop.
+
+The optional local Gemma gate is intentionally experimental. Its first
+saved-event benchmark matched a poultry event and a human event but confidently
+misread a replayed raccoon as chicken. Shadow mode caught the unsafe skip. A
+neutral follow-up prompt plus bounded `clear` / `likely` / `uncertain` certainty
+correctly triaged the same three protected events, but that set is far too small
+to justify broad trust. The owner deployment now enables one narrow suppression:
+one `clear` chicken or goose can skip Luna only when every other frame is also a
+clear resident bird or clearly empty. A `clear` or `likely` human also suppresses
+Luna as a local human veto. An uncertain human, mammal, unknown, contradictory
+frame, or local failure still calls Luna. Gemma can suppress a paid call but can
+never authorize the diffuser. The public example remains disabled and in shadow
+mode. See
+[the local-gate evidence](docs/LOCAL_GATE.md).
 
 The PowerShell helpers locate the installed Python runtime and set the source path
 automatically. `setup.ps1` installs the pinned dependencies into the project-local
@@ -92,6 +133,34 @@ The command verifies or rediscovers the authenticated camera, captures a baselin
 measures changed pixels only inside the configured polygon, and saves one five-frame
 event beneath `data/events/`. It does not call a model or actuator.
 
+Run the complete live path for one motion event, then stop:
+
+```powershell
+.\scripts\hati.ps1 run-once --config config/hati.local.json
+```
+
+`run-once` captures exactly one event, makes at most one vision request, applies
+the deterministic authorization boundary, conditionally invokes the bounded
+actuator, saves the complete audit trace, and sends the result to Telegram. It
+remains harmless with the checked-in defaults (`armed: false`, `test_mode: true`).
+Before any authorized actuator call, HATI persists an `actuating` reservation;
+after a crash or restart, that event is never replayed. Cooldown is reconstructed
+from earlier event traces instead of living only in process memory.
+
+For normal operation, run `scripts\start-hati.ps1`. It starts the same continuous
+supervisor in either disarmed or armed mode. Disarmed mode performs the complete
+observation, decision, audit, and Telegram path while locking out physical action.
+Armed mode requires the exact operator confirmation `ARM HATI`; an authorized
+predator consensus may then run the configured physical actuator. Camera failures
+are retried, processing resumes from the same saved event, Telegram feedback is
+polled concurrently, and Ctrl+C stops the supervisor.
+
+The finished diffuser configuration is medium-agnostic: `spray_mode: "big"` and
+`burst_seconds: 300` mean full mist for at most five minutes. Water is used during
+field validation; changing the reservoir contents does not change HATI's software.
+Lights remain forced off, shutdown is attempted unconditionally, and successful
+completion requires an off-state readback.
+
 Classify one captured event in one paid five-image request, then run the saved
 observations through deterministic authorization as a separate local-only step:
 
@@ -102,6 +171,13 @@ observations through deterministic authorization as a separate local-only step:
 
 The classifier refuses already-classified events to prevent accidental duplicate
 API charges. `decide-event` never invokes the actuator.
+
+To safely resume an existing captured or classified event through the same
+production pipeline, use:
+
+```powershell
+.\scripts\hati.ps1 process-event --config config/hati.local.json --event data/events/EVENT_ID/event.json
+```
 
 The ASAKUKI/Tuya diffuser was mapped from observed water-only tests. Its private
 device ID and LAN key live only in the ignored `config/tuya-device.json`. The

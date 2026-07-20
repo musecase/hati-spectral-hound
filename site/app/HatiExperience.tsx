@@ -190,7 +190,7 @@ export function HatiExperience() {
             <a className="button primary" href="#evidence">Run the evidence <span>↓</span></a>
             <a className="button ghost" href="#demo">Watch the demo <span>▶</span></a>
           </div>
-          <p className="illustration-label">Concept illustration · field deployment pending</p>
+          <p className="illustration-label">Concept illustration · outdoor safety loop verified</p>
         </div>
         <div className="field-stamp" aria-label="Project status">
           <span>BUILD WEEK</span>
@@ -202,8 +202,8 @@ export function HatiExperience() {
       <section className="proof-strip" aria-label="Verified project status">
         <div><b>01</b><span>Foscam G4</span><small>live snapshot verified</small></div>
         <div><b>05</b><span>frame evidence</span><small>one vision request</small></div>
-        <div><b>00</b><span>human overrides</span><small>hard veto, every time</small></div>
-        <div><b>≤5s</b><span>bounded actuation</span><small>water-tested + verified off</small></div>
+        <div><b>01</b><span>human veto</span><small>real field event denied</small></div>
+        <div><b>≤5m</b><span>bounded actuation</span><small>water-tested + verified off</small></div>
       </section>
 
       <section className="problem-section">
@@ -257,8 +257,8 @@ export function HatiExperience() {
           <article>
             <p className="kicker">EYES</p>
             <h3>Foscam G4</h3>
-            <p>Local authenticated snapshots, short event bursts, dynamic-address discovery.</p>
-            <span className="status-tag good">CONNECTED</span>
+            <p>Continuous low-latency RTSP, authenticated fallback, dynamic-address discovery.</p>
+            <span className="status-tag good">FIELD TESTED</span>
           </article>
           <article>
             <p className="kicker">REASONING</p>
@@ -267,16 +267,22 @@ export function HatiExperience() {
             <span className="status-tag good">LIVE TESTED</span>
           </article>
           <article>
+            <p className="kicker">LOCAL SCOUT</p>
+            <h3>Gemma 4 E4B</h3>
+            <p>Loopback-only benign triage. May suppress Luna for a clear resident bird or human veto; never authorizes action.</p>
+            <span className="status-tag">MISS CAUGHT · RULE NARROWED</span>
+          </article>
+          <article>
             <p className="kicker">MUSCLE</p>
             <h3>Tuya diffuser</h3>
-            <p>Weak mist, bounded duration, explicit shutdown, state verified afterward.</p>
+            <p>Full mist, medium-blue status light, five-minute maximum, state verified on and off.</p>
             <span className="status-tag good">WATER TESTED</span>
           </article>
           <article>
             <p className="kicker">OPERATOR</p>
             <h3>Telegram</h3>
             <p>Evidence alerts, owner feedback, status, testing, and bounded manual deploy.</p>
-            <span className="status-tag pending">BOT SETUP NEXT</span>
+            <span className="status-tag good">LIVE VERIFIED</span>
           </article>
         </div>
       </section>
@@ -286,13 +292,17 @@ export function HatiExperience() {
           <p className="kicker">PROVE THE LOOP</p>
           <h2>Improvement must<br />earn promotion.</h2>
           <p>
-            Feedback can propose a better classifier policy. It cannot quietly rewrite the live
-            system. A candidate must correct a known miss and introduce zero regressions across
-            the controlled evaluation set.
+            Correct feedback protects known-good behavior. A reviewed false alarm may propose a
+            more conservative classifier policy, but it cannot quietly rewrite the live system.
+            The candidate must correct the miss and introduce zero regressions across protected cases.
           </p>
           <div className="truth-note">
             <b>Important honesty label</b>
             <span>This proves the promotion mechanism, not field accuracy. Wildlife evaluation grows with reviewed events.</span>
+          </div>
+          <div className="truth-note">
+            <b>Local gate evidence</b>
+            <span>Gemma first misread a replayed raccoon as chicken. Shadow mode caught it; a neutral prompt then labeled the same five frames as likely mammal. Enforcement remains limited to benign suppression and cannot authorize action.</span>
           </div>
         </div>
         <div className="score-card">
@@ -307,7 +317,7 @@ export function HatiExperience() {
             <div><dt>Regressions</dt><dd>0</dd></div>
             <div><dt>Promotion</dt><dd className="promote">AUTHORIZED</dd></div>
           </dl>
-          <code>python -m hati evaluate-improvement</code>
+          <code>scripts\learn-from-latest-event.ps1</code>
         </div>
       </section>
 
@@ -316,16 +326,16 @@ export function HatiExperience() {
           <div className="phone-bar"><span>←</span><b>HATI Spectral Hound</b><i>•••</i></div>
           <div className="chat-day">TONIGHT</div>
           <div className="bot-bubble">
-            <small>HATI · event-0241</small>
-            <b>🦝 RACCOON · 92%</b>
-            <p>4/5 frame consensus<br />Decision: DEPLOY authorized<br />Mist: weak · 3 seconds · OFF verified</p>
-            <time>11:42 PM</time>
+            <small>HATI · real outdoor event</small>
+            <b>HUMAN · FRAME 5</b>
+            <p>0/5 predator votes<br />Decision: DENY · HUMAN_VETO<br />No deterrent authorized</p>
+            <time>2:17 PM</time>
           </div>
           <div className="feedback-buttons">
             <span>✓ Correct</span><span>False alarm</span><span>Wrong animal</span>
           </div>
-          <div className="owner-bubble">/status <time>11:43 PM ✓✓</time></div>
-          <div className="bot-bubble compact">Camera online · Test mode<br />Last deploy verified OFF</div>
+          <div className="owner-bubble">✓ Correct <time>2:25 PM ✓✓</time></div>
+          <div className="bot-bubble compact">Feedback recorded · Test mode<br />Manual deployment disabled</div>
         </div>
         <div className="telegram-copy">
           <p className="kicker">HUMAN IN THE LEARNING LOOP</p>
@@ -383,8 +393,8 @@ export function HatiExperience() {
         <p className="kicker">CURRENT FIELD NOTES</p>
         <h2>Working prototype.<br />No hand-waving.</h2>
         <div className="honesty-grid">
-          <div><b>✓ VERIFIED</b><p>Camera snapshots, one real five-frame event, GPT-5.6 classification, human veto, synthetic scenario suite, and water-only actuation.</p></div>
-          <div><b>◌ NEXT</b><p>Move the camera to the coop, finish Telegram bot registration, collect reviewed night events, and replace this site&apos;s video placeholder.</p></div>
+          <div><b>✓ VERIFIED</b><p>Outdoor motion event, five-frame GPT-5.6 classification, deterministic human veto, Telegram owner feedback, 95 passing tests, and water-only actuation.</p></div>
+          <div><b>◌ NEXT</b><p>Run a longer unattended field trial, collect reviewed night events, and replace this site&apos;s video placeholder.</p></div>
           <div><b>× NOT CLAIMED</b><p>No live raccoon encounter yet. No model self-modifies in production. No scent has been loaded for indoor testing.</p></div>
         </div>
       </section>

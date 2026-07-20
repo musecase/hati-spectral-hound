@@ -60,6 +60,13 @@ Process one batch of replies or commands:
 .\scripts\hati.ps1 telegram-poll-once --config config\hati.local.json
 ```
 
+For the normal always-listening owner link, right-click
+`scripts/start-telegram.ps1`, choose **Run with PowerShell**, and leave the window
+open. The poller persists each update ID before handling it, so a restart never
+replays a physical command. This is an intentional at-most-once policy: losing a
+command during a crash is safer than deploying twice. Press **Ctrl+C** to stop it
+safely.
+
 Start with `runtime.test_mode: true` and `runtime.armed: false`. Send `/test`, then
 tap a feedback button and confirm that the event JSON now contains the review.
 Only enable manual deployment after the water-only setup is clear of electronics,
@@ -68,6 +75,6 @@ people, and animals.
 ## Command boundary
 
 Messages from any chat other than the configured owner are rejected. `/deploy`
-also requires `telegram.manual_deploy_enabled: true`, an armed runtime, and a real
-actuator configuration. HATI still caps the command at five seconds, always
-attempts shutdown, and verifies the device is off.
+also requires `telegram.manual_deploy_enabled: true`, an armed runtime, live mode,
+and a real actuator configuration. HATI still caps the command at five minutes,
+always attempts shutdown, and verifies the device is off.

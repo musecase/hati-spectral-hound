@@ -87,6 +87,8 @@ def classify_frames(
     *,
     api_key: str | None = None,
     client: Any | None = None,
+    policy_id: str = "baseline",
+    policy_addendum: str = "",
 ) -> VisionResult:
     """Classify exactly five chronological frames in one Responses API request."""
     if len(frame_paths) != 5:
@@ -109,12 +111,19 @@ def classify_frames(
         content.append({"type": "input_text", "text": f"Frame {index} of 5"})
         content.append(_image_part(path, config.image_detail))
 
+    system_prompt = SYSTEM_PROMPT
+    if policy_addendum.strip():
+        system_prompt = (
+            f"{SYSTEM_PROMPT}\n\nPromoted reviewed policy ({policy_id}):\n"
+            f"{policy_addendum.strip()}"
+        )
+
     try:
         response = client.responses.parse(
             model=config.model,
             reasoning={"effort": config.reasoning_effort},
             input=[
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": content},
             ],
             text_format=VisionBurst,
@@ -162,6 +171,7 @@ def classify_frames(
         image_detail=config.image_detail,
         reasoning_effort=config.reasoning_effort,
         request_count=1,
+        policy_id=policy_id,
         input_tokens=_usage_value(usage, "input_tokens"),
         output_tokens=_usage_value(usage, "output_tokens"),
         total_tokens=_usage_value(usage, "total_tokens"),

@@ -25,6 +25,7 @@ test("server-renders the complete HATI judge experience", async () => {
   assert.match(html, /Run the evidence/);
   assert.match(html, /human veto clear/i);
   assert.match(html, /CONTROLLED EVALUATION/);
+  assert.match(html, /MISS CAUGHT · RULE NARROWED/);
   assert.match(html, /YouTube premiere slot reserved/);
   assert.match(html, /No hand-waving/);
   assert.match(html, /property="og:image"/);
@@ -38,11 +39,11 @@ test("keeps verified claims and public links in source", async () => {
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
   ]);
 
-  assert.match(experience, /44 tests|evidence-gated|zero regressions/i);
+  assert.match(experience, /feedback-derived|zero regressions/i);
   assert.match(experience, /HUMAN_VETO/);
   assert.match(experience, /github\.com\/musecase\/hati-spectral-hound/);
   assert.match(experience, /No live raccoon encounter yet/);
-  assert.match(experience, /BOT SETUP NEXT/);
+  assert.match(experience, /LIVE VERIFIED/);
   assert.match(page, /images: \[\{ url: "\/og\.png"/);
   assert.match(layout, /hati-spectral-hound\.amarygma\.chatgpt\.site/);
 });

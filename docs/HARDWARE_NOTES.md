@@ -31,9 +31,16 @@ This file records observed facts separately from integration assumptions.
 - Earlier negative subnet checks were invalid because the workspace sandbox denied
   local TCP connections; a permitted scan found the camera at `.206`
 - Authenticated Wi-Fi snapshot verified: 1920 x 1080 JPEG
-- RTSP `OPTIONS` succeeds over Wi-Fi, but OpenCV did not receive a usable H.264
-  keyframe at the current link quality; the probe now uses snapshots first
-- Final coop Wi-Fi/extender placement: not yet field-tested
+- RTSP `OPTIONS` succeeds over Wi-Fi; early one-frame OpenCV probes did not receive
+  a clean H.264 keyframe, so authenticated JPEG was used for initial recovery
+- Final coop Wi-Fi/extender placement field-tested on 2026-07-15; a real motion
+  event was captured, classified, denied by human veto, and owner-reviewed
+- Repeated JPEG requests took roughly 19 seconds per frame at the field link, so
+  event capture now keeps one RTSP session open, discards startup frames, and
+  continuously drains it; this replacement cadence still needs field validation
+- The camera later dropped completely from Wi-Fi at the 97°F field placement;
+  port 88 and the app were both unavailable, so HATI failed closed without a new
+  event, inference call, or actuation
 
 The `/videoSub` and `/videoMain` paths in local configuration are now verified.
 No plaintext camera credentials are stored in the repository.
@@ -71,12 +78,23 @@ No plaintext camera credentials are stored in the repository.
   - DP `1`: `false` to `true` (master run control)
   - DP `103`: `off` to `small` (weak spray)
   - DP `11`: `false` to `true` (light enabled)
-- Intended deterrence command: DP `1=true`, DP `103=small`, and DP `11=false`,
-  followed by bounded delay, DP `1=false`, and verified shutdown
+- Finished deterrence command: DP `1=true`, DP `103=big`, DP `11=true`, and the
+  locally observed medium-blue RGB settings, followed by a maximum 300-second
+  bounded delay, DP `1=false`, DP `11=false`, and verified shutdown
 - No timberwolf formulation has been introduced
 - TinyTuya `1.20.0` installed in the D-drive project environment
 - Passive Tuya broadcast scan returned no device metadata
-- Strong spray mode remains intentionally unmapped because HATI will use weak mode
+- Tuya's official `jsq` humidifier schema uses `large` for maximum mist, but this
+  legacy unit was observed directly on 2026-07-18 using the device-specific enum
+  `big`. While Smart Life Strong Mode was active, local status reported
+  `DP 1=true`, `DP 103=big`, and `DP 11=true`; HATI then forced power and light
+  off and verified both off.
+- HATI first completed a two-second dark water-only validation. It then completed
+  a second two-second water-only validation using `DP 1=true`, `DP 103=big`,
+  `DP 11=true`, and the selected medium-blue setting. The device normalized the
+  requested RGB `(0, 204, 255)` to `(6, 210, 249)`; HATI accepted that small
+  device-side rounding, confirmed the active state, and then verified
+  `DP 1=false`, `DP 11=false`, and `DP 103=off`.
 
 Device IDs, local keys, cloud credentials, MAC addresses, and public IP addresses
 must remain outside the repository and submission media.
