@@ -47,10 +47,11 @@ The repository currently contains:
   bounded manual-deploy path
 - restart-safe actuation reservations and cooldown reconstruction from durable event
   traces, preventing command replay after a crash or restart
-- a feedback-driven learning path that protects confirmed behavior, proposes only
-  conservative false-alarm prompt candidates, reruns bounded real event frames,
-  and promotes only after a correction with zero protected-case regressions
-- 95 tests for camera discovery, motion zones, event capture, continuous recovery,
+- a feedback-driven learning path that protects confirmed behavior, queues only
+  conservative false-alarm prompt candidates in the background, reruns bounded real
+  event frames, and promotes only after a correction with zero protected-case
+  regressions
+- 98 tests for camera discovery, motion zones, event capture, continuous recovery,
   decision safety,
   Telegram control, evaluation promotion, and actuator failure handling
 - a public, interactive judge site built with the OpenAI Sites production starter
@@ -86,14 +87,18 @@ network, or physical hardware, and writes inspectable JSON traces beneath
 The published synthetic cases are in
 [sample_data/eval_cases.json](sample_data/eval_cases.json).
 
-`learn-from-latest-event.ps1` is the owner-controlled improvement loop. Correct
-feedback becomes a protected regression example without a model call. A reviewed
-false alarm may create a conservative observer-prompt candidate; HATI reruns the
-source frames and up to three protected real events, records token-bounded model
-calls, and writes an active policy only when the miss is corrected with zero
-regressions. Missed-threat feedback cannot loosen actuation automatically. The
-human veto and deterministic authorization boundary are never editable by this
-loop.
+While the continuous Telegram operator link is running, `False alarm` feedback
+durably queues a single background improvement job. HATI proposes only the audited
+conservative observer safeguard, reruns the source frames and up to three protected
+real events, records at most four token-bounded five-frame model calls, and writes
+an active policy only when the miss is corrected with zero regressions. Telegram
+reports whether the candidate was promoted or rejected. Correct feedback becomes a
+protected regression example without a model call.
+
+`learn-from-latest-event.ps1` remains the explicit recovery/manual-review path.
+Missed-threat feedback cannot enter the automatic queue or loosen actuation. The
+human veto and deterministic authorization boundary are never editable by either
+path.
 
 The optional local Gemma gate is intentionally experimental. Its first
 saved-event benchmark matched a poultry event and a human event but confidently

@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from hati.actuator import DryRunActuator, TuyaDiffuserActuator
+from hati.auto_learning import AutomaticLearningWorker
 from hati.camera import (
     CameraError,
     RtspFrameSession,
@@ -1144,7 +1145,7 @@ def _configured_actuator(config: HatiConfig):
         raise SystemExit(2) from exc
 
 
-def _telegram_components(config: HatiConfig):
+def _telegram_components(config: HatiConfig, feedback_handler=None):
     client = _telegram_client(config)
     controller = TelegramController(
         config.telegram,
@@ -1152,6 +1153,7 @@ def _telegram_components(config: HatiConfig):
         _configured_actuator(config),
         runtime_armed=config.runtime.armed,
         test_mode=config.runtime.test_mode,
+        feedback_handler=feedback_handler,
     )
     return client, controller
 
@@ -1180,13 +1182,18 @@ def _telegram_poll_forever(
     if retry_seconds < 0:
         print("--retry-seconds cannot be negative.", file=sys.stderr)
         return 2
-    client, controller = _telegram_components(config)
     state = TelegramOffsetStore(state_path)
     try:
         offset = state.load()
     except TelegramError as exc:
         print(str(exc), file=sys.stderr)
         return 2
+    def notify_learning(message: str) -> None:
+        TelegramClient(config.telegram).send_text(message)
+
+    learning_worker = AutomaticLearningWorker(config, notifier=notify_learning)
+    learning_worker.start()
+    client, controller = _telegram_components(config, learning_worker.submit)
     print(
         json.dumps(
             {
@@ -1222,9 +1229,14 @@ def _telegram_poll_forever(
                 # Rebuild the transport after a network failure. In practice this
                 # clears stale Windows networking state that a process restart also
                 # clears, while preserving the already-committed update offset.
-                client, controller = _telegram_components(config)
+                client, controller = _telegram_components(
+                    config,
+                    learning_worker.submit,
+                )
     except KeyboardInterrupt:
         print("HATI Telegram operator link stopped.", flush=True)
+    finally:
+        learning_worker.stop()
     return 0
 
 

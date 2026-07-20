@@ -45,6 +45,9 @@ physical action. Deterministic Python code applies the safety policy.
   candidate and regression gate instead of allowing the live system to rewrite
   itself. Correct reviews protect behavior; only conservative false-alarm rules
   can be proposed automatically; more permissive changes require manual review.
+- Connected that conservative path to Telegram: a false-alarm tap now creates a
+  restart-visible, single-file background job, evaluates at most four saved
+  five-frame events, and reports promotion or rejection without blocking capture.
 - Built and deployed an interactive judge experience, public CI, and submission
   documentation from the same verified event records and tests.
 - Continuously converted physical tests and red-team questions into regression
@@ -92,8 +95,8 @@ physical action. Deterministic Python code applies the safety policy.
   `correct` feedback beside its inference and decision trace. The encrypted bot
   credential never entered source control.
 - The production continuous supervisor, one-event demonstration path,
-  feedback-derived learning gate, and restart behavior are covered by 95 local
-  tests.
+  feedback-derived learning gate, automatic conservative worker, and restart
+  behavior are covered by 98 local tests.
 
 ## Honest current limitations
 

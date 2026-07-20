@@ -248,6 +248,7 @@ class TelegramAction:
     detail: str
     event_id: str | None = None
     actuator_result: ActuatorResult | None = None
+    feedback_kind: FeedbackKind | None = None
 
 
 class TelegramController:
@@ -259,12 +260,14 @@ class TelegramController:
         *,
         runtime_armed: bool = False,
         test_mode: bool = True,
+        feedback_handler: Callable[[str, FeedbackKind], None] | None = None,
     ) -> None:
         self.config = config
         self.store = store
         self.actuator = actuator
         self.runtime_armed = runtime_armed
         self.test_mode = test_mode
+        self.feedback_handler = feedback_handler
 
     def handle(self, update: dict[str, Any]) -> TelegramAction:
         chat_id = _chat_id(update)
@@ -357,8 +360,17 @@ class TelegramController:
             feedback_note is None
             or event.feedback[existing_index].note == feedback_note
         ):
+            if self.feedback_handler is not None:
+                try:
+                    self.feedback_handler(event_id, kind)
+                except Exception:
+                    pass
             return TelegramAction(
-                "feedback", True, f"Already recorded {kind.value}", event_id=event_id
+                "feedback",
+                True,
+                f"Already recorded {kind.value}",
+                event_id=event_id,
+                feedback_kind=kind,
             )
         feedback = HumanFeedback(
             kind=kind,
@@ -371,13 +383,22 @@ class TelegramController:
         else:
             event.feedback[existing_index] = feedback
         self.store.save(event)
+        if self.feedback_handler is not None:
+            try:
+                self.feedback_handler(event_id, kind)
+            except Exception:
+                pass
         detail = f"Recorded {kind.value}"
         if feedback_note == "expected_label=unknown":
             detail += " with unknown expected animal"
         elif feedback_note and feedback_note.startswith("expected_label="):
             detail += f" with expected animal {feedback_note.partition('=')[2]}"
         return TelegramAction(
-            "feedback", True, detail, event_id=event_id
+            "feedback",
+            True,
+            detail,
+            event_id=event_id,
+            feedback_kind=kind,
         )
 
 
@@ -449,6 +470,8 @@ def process_updates(
             "detail": action.detail,
             "event_id": action.event_id,
         }
+        if action.feedback_kind is not None:
+            result["feedback_kind"] = action.feedback_kind.value
         if callback_acknowledged is not None:
             result["callback_acknowledged"] = callback_acknowledged
         results.append(result)

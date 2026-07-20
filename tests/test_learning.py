@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import json
 import tempfile
+import threading
+import time
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
@@ -16,6 +19,11 @@ from hati.config import (
     RuntimeConfig,
     TelegramConfig,
     VisionConfig,
+)
+from hati.auto_learning import (
+    AutomaticLearningResult,
+    AutomaticLearningWorker,
+    run_automatic_learning_event,
 )
 from hati.decision import authorize
 from hati.event_store import EventStore
@@ -212,6 +220,92 @@ class LearningTests(unittest.TestCase):
                 (candidate.candidate_id, candidate.prompt_addendum),
                 load_active_policy(config.vision.active_policy_path),
             )
+
+    def test_automatic_false_alarm_review_promotes_zero_regression_candidate(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "events"
+            config = config_for(root)
+            self._event(
+                root,
+                "automatic-plush",
+                AnimalLabel.RACCOON,
+                FeedbackKind.FALSE_ALARM,
+                config,
+            )
+            self._event(
+                root,
+                "automatic-protected-human",
+                AnimalLabel.HUMAN,
+                FeedbackKind.CORRECT,
+                config,
+            )
+
+            def classifier(paths, policy_id, addendum):
+                label = (
+                    AnimalLabel.UNKNOWN
+                    if "automatic-plush" in str(paths[0])
+                    else AnimalLabel.HUMAN
+                )
+                return VisionResult(
+                    classifications=classifications(label),
+                    trace=InferenceTrace(
+                        "test", "test", "test", "high", "low", 1, policy_id=policy_id
+                    ),
+                )
+
+            result = run_automatic_learning_event(
+                config,
+                "automatic-plush",
+                classifier=classifier,
+            )
+            self.assertEqual("promoted", result.status)
+            self.assertEqual(0, result.regressions)
+            self.assertTrue(config.vision.active_policy_path.is_file())
+
+    def test_background_worker_queues_only_conservative_feedback(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "events"
+            config = config_for(root)
+            completed = threading.Event()
+
+            def runner(worker_config, event_id):
+                completed.set()
+                return AutomaticLearningResult(
+                    event_id=event_id,
+                    status="rejected",
+                    candidate_id="candidate-test",
+                    model_requests=2,
+                    protected_cases=1,
+                    corrected_failures=0,
+                    regressions=0,
+                    report_path=None,
+                    active_policy_path=None,
+                )
+
+            worker = AutomaticLearningWorker(config, runner=runner)
+            worker.start()
+            try:
+                self.assertFalse(worker.submit("unsafe", FeedbackKind.MISSED_THREAT))
+                self.assertTrue(
+                    worker.submit("safe-false-alarm", FeedbackKind.FALSE_ALARM)
+                )
+                self.assertTrue(completed.wait(2))
+                job_path = (
+                    config.vision.active_policy_path.parent
+                    / "jobs"
+                    / "safe-false-alarm.json"
+                )
+                deadline = time.monotonic() + 2
+                job = {}
+                while time.monotonic() < deadline:
+                    job = json.loads(job_path.read_text(encoding="utf-8"))
+                    if job.get("status") == "rejected":
+                        break
+                    time.sleep(0.01)
+                self.assertEqual("rejected", job["status"])
+                self.assertFalse(job["physical_action"])
+            finally:
+                worker.stop()
 
     def test_false_alarm_can_correct_label_even_when_baseline_already_denied(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

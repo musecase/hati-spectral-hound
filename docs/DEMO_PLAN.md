@@ -26,9 +26,10 @@ Every result writes an inspectable JSON trace under `data/demo_runs/`.
 Borrowed stuffed wildlife is a physical false-positive and motion-pipeline test.
 Its ground truth is **non-live decoy**, not predator. A safe result is `unknown`
 or another non-authorizing label. If it is mislabeled as a predator, tap `False
-alarm`, then run `scripts\learn-from-latest-event.ps1`. HATI will propose a
-conservative prompt candidate, rerun the source and protected real events, and
-promote only after the miss is corrected with zero regressions. It must not be
+alarm` while the continuous operator link is running. HATI will queue a
+conservative prompt candidate in the background, rerun the source and protected
+real events, and promote only after the miss is corrected with zero regressions.
+It must not be
 presented as a successful wildlife detection. If the initial plush classification
 is already safe, record that result honestly and use the controlled improvement
 fixture to demonstrate the gate.
@@ -55,7 +56,7 @@ for all other steps.
 4. Run the replayed positive vision test and identify it honestly.
 5. Demonstrate the water-only mister loop.
 6. Show the Telegram alert, tap one feedback label, and run `/status` or `/test`.
-7. Run `learn-from-latest-event.ps1` for a reviewed plush false alarm, or use
+7. Tap `False alarm` to show the queued background check, or use
    `evaluate-improvement` to show the controlled 3/4 → 4/4 zero-regression gate.
 8. Close with the human veto, fail-closed rules, and owner-controlled learning loop.
 

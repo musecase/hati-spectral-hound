@@ -51,14 +51,16 @@ from saved traces.
 Telegram gives the owner the event evidence and outcome, collects one-tap
 feedback, reports system status, runs safe tests, and supports a separate bounded
 manual `/deploy` command. Correct feedback becomes protected regression evidence.
-A reviewed false alarm may propose only a more conservative classifier policy,
-which is promoted only after it corrects the miss with zero regressions across a
-bounded set of protected real events. Feedback that could increase actuation is
-held for manual review.
+A reviewed false alarm now queues a background evaluation of only a more
+conservative classifier policy. It is promoted only after correcting the miss with
+zero regressions across a bounded set of protected real events. The job uses at
+most four five-frame model requests and reports its result in Telegram without
+blocking the camera. Feedback that could increase actuation is held for manual
+review.
 
 ## How we built it
 
-- Python 3.12 with typed records, JSON traces, OpenCV motion detection, and 95
+- Python 3.12 with typed records, JSON traces, OpenCV motion detection, and 98
   automated tests.
 - Low-latency continuous Foscam RTSP capture with startup warmup, authenticated
   JPEG fallback, and authenticated `/24` rediscovery when DHCP changes the address.

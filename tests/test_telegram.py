@@ -94,6 +94,35 @@ class TelegramTests(unittest.TestCase):
         self.assertTrue(result.accepted)
         self.assertEqual(FeedbackKind.CORRECT, loaded.feedback[0].kind)
 
+    def test_false_alarm_feedback_notifies_automatic_learning_handler(self) -> None:
+        queued: list[tuple[str, FeedbackKind]] = []
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            event = build_simulated_event("raccoon", "camera", "COOP_DOOR_ZONE")
+            EventStore(root).save(event)
+            controller = TelegramController(
+                telegram_config(),
+                EventStore(root),
+                FakeActuator(),
+                feedback_handler=lambda event_id, kind: queued.append((event_id, kind)),
+            )
+            data = feedback_keyboard(event.event_id)["inline_keyboard"][0][1][
+                "callback_data"
+            ]
+            result = controller.handle(
+                {
+                    "update_id": 8,
+                    "callback_query": {
+                        "data": data,
+                        "from": {"id": 42},
+                        "message": {"chat": {"id": 42}},
+                    },
+                }
+            )
+        self.assertTrue(result.accepted)
+        self.assertEqual(FeedbackKind.FALSE_ALARM, result.feedback_kind)
+        self.assertEqual([(event.event_id, FeedbackKind.FALSE_ALARM)], queued)
+
     def test_repeated_owner_feedback_is_idempotent(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

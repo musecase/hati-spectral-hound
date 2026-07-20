@@ -292,8 +292,8 @@ export function HatiExperience() {
           <p className="kicker">PROVE THE LOOP</p>
           <h2>Improvement must<br />earn promotion.</h2>
           <p>
-            Correct feedback protects known-good behavior. A reviewed false alarm may propose a
-            more conservative classifier policy, but it cannot quietly rewrite the live system.
+            Correct feedback protects known-good behavior. A false-alarm tap queues a conservative
+            classifier safeguard in the background, but it cannot quietly loosen the live system.
             The candidate must correct the miss and introduce zero regressions across protected cases.
           </p>
           <div className="truth-note">
@@ -393,9 +393,9 @@ export function HatiExperience() {
         <p className="kicker">CURRENT FIELD NOTES</p>
         <h2>Working prototype.<br />No hand-waving.</h2>
         <div className="honesty-grid">
-          <div><b>✓ VERIFIED</b><p>Outdoor motion event, five-frame GPT-5.6 classification, deterministic human veto, Telegram owner feedback, 95 passing tests, and water-only actuation.</p></div>
+          <div><b>✓ VERIFIED</b><p>Outdoor motion event, five-frame GPT-5.6 classification, deterministic human veto, Telegram owner feedback, 98 passing tests, and water-only actuation.</p></div>
           <div><b>◌ NEXT</b><p>Run a longer unattended field trial, collect reviewed night events, and replace this site&apos;s video placeholder.</p></div>
-          <div><b>× NOT CLAIMED</b><p>No live raccoon encounter yet. No model self-modifies in production. No scent has been loaded for indoor testing.</p></div>
+          <div><b>× NOT CLAIMED</b><p>No live raccoon encounter yet. No model weights retrain themselves. No scent has been loaded for indoor testing.</p></div>
         </div>
       </section>
 

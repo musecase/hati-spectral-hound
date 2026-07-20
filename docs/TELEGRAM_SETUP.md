@@ -13,7 +13,9 @@ configuration and never requires a secret in Git.
 - `/status` for the current camera/mode/actuation state;
 - `/test` for an end-to-end dry-run that never operates the physical device;
 - `/deploy` for an authenticated owner-requested bounded mist;
-- feedback stored alongside the original event trace for later evaluation.
+- feedback stored alongside the original event trace for later evaluation;
+- a restart-visible background learning job for `False alarm` feedback, limited to
+  conservative observer changes and at most four five-frame model requests.
 
 Autonomous actuation remains evidence-gated. Manual `/deploy` is a separate owner
 path, but it uses the same hard duration cap and shutdown verification as an
@@ -71,6 +73,13 @@ Start with `runtime.test_mode: true` and `runtime.armed: false`. Send `/test`, t
 tap a feedback button and confirm that the event JSON now contains the review.
 Only enable manual deployment after the water-only setup is clear of electronics,
 people, and animals.
+
+With the continuous operator link or supervisor running, tapping `False alarm`
+also produces a second Telegram message confirming that conservative evaluation
+was queued. The camera and operator link continue independently while the single
+background worker runs. A completion message says either that the safeguard was
+promoted with zero regressions or rejected with the prompt unchanged. Correct,
+wrong-animal, unknown, and missed-threat feedback never trigger paid evaluation.
 
 ## Command boundary
 
