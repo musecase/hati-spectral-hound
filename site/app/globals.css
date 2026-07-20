@@ -235,11 +235,12 @@ main { overflow: hidden; }
 .roles-card a { display: block; margin-top: 1.5rem; padding: .9rem; background: var(--ink); color: var(--cream); font-family: var(--mono); font-size: .62rem; text-align: center; }
 
 .honesty-section { background: var(--paper); }
-.honesty-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin-top: 4rem; border: 1px solid var(--line); background: var(--line); }
+.honesty-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; margin-top: 4rem; border: 1px solid var(--line); background: var(--line); }
 .honesty-grid > div { min-height: 210px; padding: 1.8rem; background: var(--paper); }
 .honesty-grid b { color: var(--moss); font-family: var(--mono); font-size: .65rem; letter-spacing: .11em; }
-.honesty-grid > div:nth-child(2) b { color: #a17123; }
-.honesty-grid > div:nth-child(3) b { color: var(--red); }
+.honesty-grid > div.observed b { color: #397c85; }
+.honesty-grid > div.next b { color: #a17123; }
+.honesty-grid > div.not-claimed b { color: var(--red); }
 .honesty-grid p { margin-top: 2.5rem; color: #596562; font-family: var(--serif); font-size: 1.02rem; line-height: 1.6; }
 
 footer { display: grid; grid-template-columns: 1fr 1fr auto; gap: 2rem; align-items: center; padding: 2rem clamp(1.25rem, 5vw, 5rem); background: var(--ink); color: rgba(255,255,255,.7); }

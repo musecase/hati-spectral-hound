@@ -394,8 +394,9 @@ export function HatiExperience() {
         <h2>Working prototype.<br />No hand-waving.</h2>
         <div className="honesty-grid">
           <div><b>✓ VERIFIED</b><p>Outdoor motion event, five-frame GPT-5.6 classification, deterministic human veto, Telegram owner feedback, 98 passing tests, and water-only actuation.</p></div>
-          <div><b>◌ NEXT</b><p>Run a longer unattended field trial, collect reviewed night events, and replace this site&apos;s video placeholder.</p></div>
-          <div><b>× NOT CLAIMED</b><p>No live raccoon encounter yet. No model weights retrain themselves. No scent has been loaded for indoor testing.</p></div>
+          <div className="observed"><b>◎ OBSERVED</b><p>During field testing, the camera&apos;s bundled trial AI issued three car alerts irrelevant to the protected coop zone. HATI produced substantially less operator noise in the same period. Anecdotal field observation, not an accuracy benchmark.</p></div>
+          <div className="next"><b>◌ NEXT</b><p>Run a longer unattended field trial, collect reviewed night events, and replace this site&apos;s video placeholder.</p></div>
+          <div className="not-claimed"><b>× NOT CLAIMED</b><p>No live raccoon encounter yet. No model weights retrain themselves. No scent has been loaded for indoor testing.</p></div>
         </div>
       </section>
 
