@@ -35,7 +35,9 @@ turned those decisions into a real, testable system in one week?
 HATI stands for Homestead Autonomous Threat Intervention. A Foscam camera watches
 a protected poultry zone. Local motion detection opens a short event window and
 captures exactly five frames. Luna sends those frames to GPT-5.6 in one structured
-vision request.
+vision cascade: frames 2 and 4 screen ordinary events first. Only uncertain,
+conflicting, or threat-like results send frames 1, 3, and 5. The cheap two-frame path
+can only deny; authorization still requires the combined four-of-five rule.
 
 The model describes what it sees, but it never operates hardware. Deterministic
 Python code requires temporal agreement, checks that the animal is a configured
@@ -60,12 +62,12 @@ review.
 
 ## How we built it
 
-- Python 3.12 with typed records, JSON traces, OpenCV motion detection, and 98
+- Python 3.12 with typed records, JSON traces, OpenCV motion detection, and 100+
   automated tests.
 - Low-latency continuous Foscam RTSP capture with startup warmup, authenticated
   JPEG fallback, and authenticated `/24` rediscovery when DHCP changes the address.
-- GPT-5.6 vision with five high-detail images, structured output, one request per
-  event, token accounting, and duplicate-charge protection.
+- GPT-5.6 vision with a two-image benign screen and conditional three-image
+  completion, structured output, token accounting, and duplicate-charge protection.
 - Deterministic consensus, target allowlists, protected-zone checks, and a human
   veto outside the model.
 - Local Tuya control with full mist mode, an observed medium-blue light setting, a

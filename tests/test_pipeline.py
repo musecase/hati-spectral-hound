@@ -359,6 +359,63 @@ class PipelineTests(unittest.TestCase):
         self.assertIsNone(result.event.inference_trace)
         self.assertEqual([], actuator.events)
 
+    def test_remote_benign_screen_stops_before_full_classification(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            store = EventStore(Path(temporary))
+            event = EventRecord(
+                event_id="remote-benign-screen",
+                start_time=datetime.now(timezone.utc),
+                camera_id="camera",
+                zone="COOP_DOOR_ZONE",
+                trigger_reason="motion",
+                frame_paths=[Path(f"frame-{index:03d}.jpg") for index in range(1, 6)],
+            )
+            actuator = RecordingActuator()
+
+            def classify(_paths: list[Path]) -> VisionResult:
+                observations = tuple(
+                    Classification(
+                        frame_id=f"frame-{index:03d}",
+                        animal=AnimalLabel.CHICKEN,
+                        predator=False,
+                        confidence=0.99,
+                        evidence=("controlled",),
+                    )
+                    for index in (2, 4)
+                )
+                return VisionResult(
+                    observations,
+                    InferenceTrace(
+                        provider="test",
+                        model="luna",
+                        api="test",
+                        image_detail="high",
+                        reasoning_effort="low",
+                        request_count=1,
+                        image_count=2,
+                        screening_frames=(2, 4),
+                        screen_dismissed=True,
+                    ),
+                )
+
+            result = process_event(
+                event,
+                _config(store.root),
+                store,
+                classify,
+                actuator,
+                physical_action=True,
+            )
+
+        self.assertTrue(result.classified)
+        self.assertTrue(result.decided)
+        self.assertEqual(ProcessingState.DECIDED, result.event.processing_state)
+        self.assertEqual(DecisionOutcome.DENY, result.event.decision.outcome)
+        self.assertEqual("REMOTE_BENIGN_SCREEN", result.event.decision.reason_code)
+        self.assertEqual(2, result.event.decision.usable_observations)
+        self.assertEqual(2, result.event.inference_trace.image_count)
+        self.assertEqual([], actuator.events)
+
     def test_enforcing_likely_human_gate_suppresses_luna_and_actuator(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             store = EventStore(Path(temporary))

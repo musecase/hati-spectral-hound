@@ -77,7 +77,7 @@ const cases: EvidenceCase[] = [
 
 const loop = [
   ["01", "SEE", "Local motion opens a short event window."],
-  ["02", "IDENTIFY", "Luna analyzes five frames in one GPT-5.6 vision request."],
+  ["02", "IDENTIFY", "Luna screens frames 2 and 4; uncertain events complete all five."],
   ["03", "VERIFY", "Local rules demand consensus and apply hard vetoes."],
   ["04", "ACT", "A bounded Tuya command deploys mist, then verifies off."],
   ["05", "REVIEW", "Telegram carries the evidence, outcome, and feedback."],
@@ -263,7 +263,7 @@ export function HatiExperience() {
           <article>
             <p className="kicker">REASONING</p>
             <h3>Luna / GPT-5.6</h3>
-            <p>Five high-detail frames, structured JSON, one request per event.</p>
+            <p>Two-frame screening, conditional five-frame completion, structured JSON.</p>
             <span className="status-tag good">LIVE TESTED</span>
           </article>
           <article>
@@ -393,7 +393,7 @@ export function HatiExperience() {
         <p className="kicker">CURRENT FIELD NOTES</p>
         <h2>Working prototype.<br />No hand-waving.</h2>
         <div className="honesty-grid">
-          <div><b>✓ VERIFIED</b><p>Outdoor motion event, five-frame GPT-5.6 classification, deterministic human veto, Telegram owner feedback, 98 passing tests, and water-only actuation.</p></div>
+          <div><b>✓ VERIFIED</b><p>Outdoor motion event, five-frame GPT-5.6 classification, deterministic human veto, Telegram owner feedback, 100+ passing tests, and water-only actuation.</p></div>
           <div className="observed"><b>◎ OBSERVED</b><p>During field testing, the camera&apos;s bundled trial AI issued three car alerts irrelevant to the protected coop zone. HATI produced substantially less operator noise in the same period. Anecdotal field observation, not an accuracy benchmark.</p></div>
           <div className="next"><b>◌ NEXT</b><p>Run a longer unattended field trial, collect reviewed night events, and replace this site&apos;s video placeholder.</p></div>
           <div className="not-claimed"><b>× NOT CLAIMED</b><p>No live raccoon encounter yet. No model weights retrain themselves. No scent has been loaded for indoor testing.</p></div>

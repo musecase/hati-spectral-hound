@@ -52,7 +52,7 @@ piece of evidence.
 
 ## 2:27-2:45 - Codex and close
 
-- Show the repository, 98 passing tests, and the public judge site.
+- Show the repository, 100+ passing tests, and the public judge site.
 - Say what Codex accelerated: architecture, hardware diagnosis, implementation,
   regression tests, documentation, and the field-driven JPEG-to-RTSP correction.
 - Close: "Codex builds. GPT-5.6 sees. HATI decides. The hound acts only when the

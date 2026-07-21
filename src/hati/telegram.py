@@ -147,6 +147,17 @@ def event_message(event: EventRecord) -> str:
     )
 
 
+def _notification_frame_paths(event: EventRecord) -> list[Path]:
+    trace = event.inference_trace
+    if trace is not None and trace.screen_dismissed and trace.screening_frames:
+        return [
+            event.frame_paths[number - 1]
+            for number in trace.screening_frames
+            if 1 <= number <= len(event.frame_paths)
+        ]
+    return list(event.frame_paths)
+
+
 def feedback_keyboard(event_id: str) -> dict[str, Any]:
     def button(label: str, value: str | FeedbackKind) -> dict[str, str]:
         callback_value = value.value if isinstance(value, FeedbackKind) else value
@@ -175,11 +186,12 @@ def feedback_keyboard(event_id: str) -> dict[str, Any]:
 
 
 def notification_preview(event: EventRecord) -> dict[str, Any]:
+    preferred_frames = _notification_frame_paths(event)
     return {
         "chat_id": "<owner-chat-id>",
         "text": event_message(event),
         "reply_markup": feedback_keyboard(event.event_id),
-        "photo": str(event.frame_paths[-1]) if event.frame_paths else None,
+        "photo": str(preferred_frames[-1]) if preferred_frames else None,
     }
 
 
@@ -197,7 +209,7 @@ class TelegramClient:
     def send_event(self, event: EventRecord) -> dict[str, Any]:
         markup = feedback_keyboard(event.event_id)
         image = next(
-            (path for path in reversed(event.frame_paths) if path.exists()),
+            (path for path in reversed(_notification_frame_paths(event)) if path.exists()),
             None,
         )
         if image:

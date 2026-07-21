@@ -14,6 +14,7 @@ def utc_now() -> datetime:
 
 
 class AnimalLabel(StrEnum):
+    EMPTY = "empty"
     HUMAN = "human"
     DOG = "dog"
     CAT = "cat"
@@ -78,6 +79,10 @@ class InferenceTrace:
     input_tokens: int | None = None
     output_tokens: int | None = None
     total_tokens: int | None = None
+    image_count: int | None = None
+    screening_frames: tuple[int, ...] = ()
+    completion_frames: tuple[int, ...] = ()
+    screen_dismissed: bool = False
 
 
 @dataclass(frozen=True)

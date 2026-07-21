@@ -143,6 +143,7 @@ def run_automatic_learning_event(
                 api_key=api_key,
                 policy_id=policy_id,
                 policy_addendum=addendum,
+                cascade=False,
             )
 
     try:

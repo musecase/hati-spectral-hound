@@ -7,8 +7,9 @@ constraints, and a vigorous red-team instinct. Codex translated those decisions
 into a tested Python system and helped diagnose the camera, network, vision, and
 actuator integrations.
 
-The application itself uses GPT-5.6 Luna for bounded five-frame visual
-classification. Luna proposes labels and confidence; it never authorizes a
+The application uses GPT-5.6 Luna for staged visual classification. Luna first
+screens frames 2 and 4, then requests frames 1, 3, and 5 only for uncertain or
+threat-like events. Luna proposes labels and confidence; it never authorizes a
 physical action. Deterministic Python code applies the safety policy.
 
 ## Where Codex accelerated the work
@@ -96,7 +97,7 @@ physical action. Deterministic Python code applies the safety policy.
   credential never entered source control.
 - The production continuous supervisor, one-event demonstration path,
   feedback-derived learning gate, automatic conservative worker, and restart
-  behavior are covered by 98 local tests.
+  behavior are covered by 100+ local tests.
 
 ## Honest current limitations
 
