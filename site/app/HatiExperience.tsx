@@ -201,7 +201,7 @@ export function HatiExperience() {
 
       <section className="proof-strip" aria-label="Verified project status">
         <div><b>01</b><span>Foscam G4</span><small>live snapshot verified</small></div>
-        <div><b>05</b><span>frame evidence</span><small>one vision request</small></div>
+        <div><b>05</b><span>frame evidence</span><small>staged vision cascade</small></div>
         <div><b>01</b><span>human veto</span><small>real field event denied</small></div>
         <div><b>≤5m</b><span>bounded actuation</span><small>water-tested + verified off</small></div>
       </section>
@@ -355,20 +355,24 @@ export function HatiExperience() {
 
       <section className="demo-section" id="demo">
         <div className="video-frame">
-          <div className="video-placeholder">
-            <span className="play-button">▶</span>
-            <p>3-MINUTE DEMO</p>
-            <small>YouTube premiere slot reserved</small>
-          </div>
+          <iframe
+            className="video-embed"
+            src="https://www.youtube-nocookie.com/embed/1FV-zFQfFqc"
+            title="HATI — Spectral Hound three-minute Build Week demo"
+            loading="lazy"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
         </div>
         <div className="demo-copy">
           <p className="kicker">THE FIELD NOTE, ON FILM</p>
           <h2>See the whole handoff.</h2>
           <p>
-            Camera to Luna. Luna to policy. Policy to water mist. Evidence to owner. The public
-            Build Week demo will live here as soon as the final cut is uploaded.
+            Camera to Luna. Luna to policy. Policy to mist. Evidence to owner. The finished
+            three-minute Build Week demo follows the working system and the family who built it.
           </p>
-          <span className="status-tag pending">VIDEO IN PRODUCTION</span>
+          <a className="status-tag good" href="https://www.youtube.com/watch?v=1FV-zFQfFqc" target="_blank" rel="noreferrer">WATCH ON YOUTUBE ↗</a>
         </div>
       </section>
 
@@ -395,8 +399,8 @@ export function HatiExperience() {
         <div className="honesty-grid">
           <div><b>✓ VERIFIED</b><p>Outdoor motion event, five-frame GPT-5.6 classification, deterministic human veto, Telegram owner feedback, 100+ passing tests, and water-only actuation.</p></div>
           <div className="observed"><b>◎ OBSERVED</b><p>During field testing, the camera&apos;s bundled trial AI issued three car alerts irrelevant to the protected coop zone. HATI produced substantially less operator noise in the same period. Anecdotal field observation, not an accuracy benchmark.</p></div>
-          <div className="next"><b>◌ NEXT</b><p>Run a longer unattended field trial, collect reviewed night events, and replace this site&apos;s video placeholder.</p></div>
-          <div className="not-claimed"><b>× NOT CLAIMED</b><p>No live raccoon encounter yet. No model weights retrain themselves. No scent has been loaded for indoor testing.</p></div>
+          <div className="next"><b>◌ NEXT</b><p>Run a longer unattended field trial and collect reviewed night events across weather and seasons.</p></div>
+          <div className="not-claimed"><b>× NOT CLAIMED</b><p>No live raccoon encounter yet. No model weights retrain themselves. No field-effectiveness claim has been made from staged footage.</p></div>
         </div>
       </section>
 
