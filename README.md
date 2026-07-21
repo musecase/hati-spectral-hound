@@ -27,8 +27,9 @@ The repository currently contains:
 - authenticated `/24` camera rediscovery when DHCP changes the address
 - configurable normalized polygon zones and local frame-difference motion detection
 - one-event watching with a pre-trigger frame and exactly five event frames
-- one-request, five-frame GPT-5.6 Luna vision classification with structured output
-  and recorded token usage
+- staged GPT-5.6 Luna vision classification: frames 2 and 4 screen ordinary events;
+  only uncertain or threat-like events send frames 1, 3, and 5 for the original
+  four-of-five authorization rule; request, image, and token usage are recorded
 - an LM Studio/Gemma 4 E4B local gate with bounded `clear` / `likely` /
   `uncertain` output; the owner deployment may suppress Luna only for a clear
   resident-bird event or a clear/likely human veto, and can never authorize action
@@ -51,7 +52,7 @@ The repository currently contains:
   conservative false-alarm prompt candidates in the background, reruns bounded real
   event frames, and promotes only after a correction with zero protected-case
   regressions
-- 98 tests for camera discovery, motion zones, event capture, continuous recovery,
+- 100+ tests for camera discovery, motion zones, event capture, continuous recovery,
   decision safety,
   Telegram control, evaluation promotion, and actuator failure handling
 - a public, interactive judge site built with the OpenAI Sites production starter
@@ -113,6 +114,12 @@ frame, or local failure still calls Luna. Gemma can suppress a paid call but can
 never authorize the diffuser. The public example remains disabled and in shadow
 mode. See
 [the local-gate evidence](docs/LOCAL_GATE.md).
+
+When Gemma escalates, Luna first sees event frames 2 and 4. Two confident benign,
+empty, resident-animal, or human observations end the event without sending the
+remaining images. Any predator, unknown, unusable frame, low-confidence result, or
+disagreement sends frames 1, 3, and 5. Only the combined five-frame result can reach
+the deterministic four-vote authorization rule; the two-frame screen can only deny.
 
 The PowerShell helpers locate the installed Python runtime and set the source path
 automatically. `setup.ps1` installs the pinned dependencies into the project-local

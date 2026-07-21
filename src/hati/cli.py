@@ -444,6 +444,7 @@ def _evaluate_vision_improvement(
                 api_key=api_key,
                 policy_id=policy_id,
                 policy_addendum=addendum,
+                cascade=False,
             ),
             max_protected_cases=max_protected,
         )
@@ -738,6 +739,7 @@ def _classify_event(config: HatiConfig, event_path: Path) -> int:
             api_key=api_key,
             policy_id=policy_id,
             policy_addendum=policy_addendum,
+            cascade=False,
         )
     except VisionError as exc:
         print(f"Vision classification failed: {exc}", file=sys.stderr)

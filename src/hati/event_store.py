@@ -57,7 +57,19 @@ class EventStore:
             for item in raw.get("classifications", [])
         ]
         trace_raw = raw.get("inference_trace")
-        inference_trace = InferenceTrace(**trace_raw) if trace_raw else None
+        inference_trace = None
+        if trace_raw:
+            inference_trace = InferenceTrace(
+                **{
+                    **trace_raw,
+                    "screening_frames": tuple(
+                        int(value) for value in trace_raw.get("screening_frames", [])
+                    ),
+                    "completion_frames": tuple(
+                        int(value) for value in trace_raw.get("completion_frames", [])
+                    ),
+                }
+            )
         local_gate_raw = raw.get("local_gate_trace")
         local_gate_trace = None
         if local_gate_raw:

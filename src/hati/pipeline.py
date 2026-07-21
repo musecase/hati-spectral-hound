@@ -148,9 +148,49 @@ def process_event(
             vision = classifier(event.frame_paths)
             event.classifications = list(vision.classifications)
             event.inference_trace = vision.trace
-            event.processing_state = ProcessingState.CLASSIFIED
-            store.save(event)
             classified = True
+            if vision.trace.screen_dismissed:
+                human_veto = any(
+                    item.animal is AnimalLabel.HUMAN
+                    for item in event.classifications
+                )
+                unanimous_label = (
+                    event.classifications[0].animal
+                    if event.classifications
+                    and all(
+                        item.animal is event.classifications[0].animal
+                        for item in event.classifications
+                    )
+                    else None
+                )
+                event.decision = DecisionRecord(
+                    outcome=DecisionOutcome.DENY,
+                    reason_code=(
+                        "REMOTE_HUMAN_VETO"
+                        if human_veto
+                        else "REMOTE_BENIGN_SCREEN"
+                    ),
+                    explanation=(
+                        "Luna's two-frame screen identified a human; remaining "
+                        "frames and deterrent suppressed"
+                        if human_veto
+                        else (
+                            "Luna's frames 2 and 4 were conclusively benign; "
+                            "remaining frames and deterrent suppressed"
+                        )
+                    ),
+                    usable_observations=len(event.classifications),
+                    predator_votes=0,
+                    consensus_label=(
+                        AnimalLabel.HUMAN if human_veto else unanimous_label
+                    ),
+                    human_veto=human_veto,
+                )
+                event.processing_state = ProcessingState.DECIDED
+                decided = True
+            else:
+                event.processing_state = ProcessingState.CLASSIFIED
+            store.save(event)
 
     if event.processing_state is ProcessingState.CLASSIFIED:
         state = _system_state(event, config, store, actuator)

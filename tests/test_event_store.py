@@ -49,6 +49,9 @@ class EventStoreTests(unittest.TestCase):
                     reasoning_effort="low",
                     request_count=1,
                     total_tokens=120,
+                    image_count=2,
+                    screening_frames=(2, 4),
+                    screen_dismissed=True,
                 ),
             )
             path = EventStore(Path(temporary)).save(event)
@@ -58,6 +61,9 @@ class EventStoreTests(unittest.TestCase):
         self.assertEqual(ProcessingState.CLASSIFIED, loaded.processing_state)
         self.assertIsNotNone(loaded.inference_trace)
         self.assertEqual("gpt-5.6-luna", loaded.inference_trace.model)
+        self.assertEqual(2, loaded.inference_trace.image_count)
+        self.assertEqual((2, 4), loaded.inference_trace.screening_frames)
+        self.assertTrue(loaded.inference_trace.screen_dismissed)
 
     def test_local_shadow_gate_trace_round_trips(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

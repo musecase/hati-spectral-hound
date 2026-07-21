@@ -9,7 +9,7 @@ from hati.actuator import ActuatorResult
 from hati.config import TelegramConfig, load_config
 from hati.cli import _telegram_poll_forever
 from hati.event_store import EventStore
-from hati.models import FeedbackKind
+from hati.models import FeedbackKind, InferenceTrace
 from hati.simulation import build_simulated_event
 from hati.telegram import (
     TelegramClient,
@@ -63,6 +63,25 @@ class TelegramTests(unittest.TestCase):
         preview = notification_preview(event)
         self.assertIn("HATI event", preview["text"])
         self.assertEqual(3, len(preview["reply_markup"]["inline_keyboard"]))
+
+    def test_benign_screen_preview_shows_a_frame_luna_actually_saw(self) -> None:
+        event = build_simulated_event("chicken", "camera", "COOP_DOOR_ZONE")
+        event.frame_paths = [Path(f"frame-{index:03d}.jpg") for index in range(1, 6)]
+        event.inference_trace = InferenceTrace(
+            provider="openai",
+            model="luna",
+            api="responses",
+            image_detail="high",
+            reasoning_effort="low",
+            request_count=1,
+            image_count=2,
+            screening_frames=(2, 4),
+            screen_dismissed=True,
+        )
+
+        preview = notification_preview(event)
+
+        self.assertEqual("frame-004.jpg", preview["photo"])
 
     def test_client_sends_message_when_no_image_exists(self) -> None:
         transport = FakeTransport()
