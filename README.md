@@ -228,6 +228,28 @@ water-only demonstration sequence. See
 [docs/BUILT_WITH_CODEX.md](docs/BUILT_WITH_CODEX.md) for the GPT-5.6/Codex
 development narrative and key decisions.
 
+## Collaboration with Codex
+
+As a noncoder, I relied heavily on Codex for the implementation of this project:
+I personally wrote 0% of the code, and I did not use another coding assistant
+such as Claude, Gemini, or Kimi. The entire codebase was developed through Codex.
+I collaborated with GPT-5.6-Sol in ChatGPT on the initial design and requirements,
+then used its handoff documents to begin building with Codex. HATI also uses
+GPT-5.6-Luna through the API as its remote visual interpreter.
+
+My role was in identifying the problem, developing the design and behavioral
+logic, making decisions, red-teaming the system, assembling and repairing the
+hardware, extending the Wi-Fi network, and conducting field tests. Codex handled
+the architecture, implementation, tests, documentation, debugging, and deployment
+while checking with me whenever decisions or permissions were required. ChatGPT
+even helped me select a better Wi-Fi setup and correctly repair the diffuser
+wiring after mice ate through it.
+
+I had a lot of fun building HATI, and the completed system functions as I
+intended. More importantly, this project showed me that not knowing how to code
+does not mean I cannot make useful things with code. I look forward to seeing
+what I can build next.
+
 ## Product sequence
 
 **SEE → IDENTIFY → VERIFY → ACT → REVIEW**
