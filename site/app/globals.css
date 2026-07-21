@@ -217,10 +217,7 @@ main { overflow: hidden; }
 
 .demo-section { display: grid; grid-template-columns: 1.35fr .65fr; gap: clamp(2rem, 6vw, 6rem); align-items: center; padding: clamp(5rem, 8vw, 8rem) clamp(1.25rem, 7vw, 7rem); background: var(--cream); }
 .video-frame { padding: 10px; background: var(--ink); box-shadow: 20px 20px 0 #d9d2c3; }
-.video-placeholder { display: grid; aspect-ratio: 16/9; place-content: center; border: 1px solid rgba(255,255,255,.25); background: radial-gradient(circle at 50%, rgba(132,198,194,.2), transparent 33%), linear-gradient(145deg, #17323c, #0b171d); color: white; text-align: center; }
-.play-button { display: grid; width: 72px; height: 72px; margin: 0 auto 1rem; place-items: center; border: 1px solid var(--amber); border-radius: 50%; color: var(--amber); font-size: 1.3rem; text-indent: .2em; }
-.video-placeholder p { margin: 0; font-family: var(--mono); font-size: .7rem; letter-spacing: .14em; }
-.video-placeholder small { margin-top: .5rem; color: rgba(255,255,255,.46); font-size: .63rem; }
+.video-embed { display: block; width: 100%; aspect-ratio: 16/9; border: 1px solid rgba(255,255,255,.25); }
 .demo-copy > p:not(.kicker) { color: #64706e; font-family: var(--serif); font-size: 1.05rem; line-height: 1.7; }
 
 .build-section { display: grid; grid-template-columns: 1.3fr .7fr; gap: clamp(3rem, 8vw, 8rem); padding: clamp(5rem, 10vw, 9rem) clamp(1.25rem, 7vw, 7rem); background: #e5b75f; }
