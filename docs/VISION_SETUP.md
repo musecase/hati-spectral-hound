@@ -6,7 +6,7 @@ code derives predator status and authorizes or denies any later action.
 
 ## Configuration
 
-- Model: `gpt-5.6-luna`
+- Model: `gpt-6-luna`
 - API: Responses
 - Image transport: Base64 JPEG data URLs; no Files API permission required
 - Image detail: `high`, selected explicitly to bound image-token cost
@@ -14,12 +14,11 @@ code derives predator status and authorizes or denies any later action.
 - Structured output: Pydantic schema with exactly five numbered observations
 - API response storage: disabled with `store=false`
 - Duplicate protection: events not in `captured` state are refused before an API call
-- Key storage: Windows-user-bound encrypted CLIXML on D, ignored by Git
+- Key storage: local `.env.local`, ignored by Git
 
-The model choice follows OpenAI's current guidance: GPT-5.6 Luna targets efficient,
-high-volume workloads. The vision guide supports several Base64 images in one
-Responses request and notes that GPT-5.6 defaults to original-resolution processing;
-HATI instead requests `high` detail deliberately.
+The model choice follows OpenAI's current guidance: GPT-6 Luna targets efficient,
+repeatable work at scale. The vision guide supports several Base64 images in one
+Responses request; HATI requests `high` detail deliberately.
 
 - https://developers.openai.com/api/docs/guides/latest-model
 - https://developers.openai.com/api/docs/guides/images-vision

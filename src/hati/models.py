@@ -20,6 +20,7 @@ class AnimalLabel(StrEnum):
     CAT = "cat"
     CHICKEN = "chicken"
     GOOSE = "goose"
+    RABBIT = "rabbit"
     RACCOON = "raccoon"
     FOX = "fox"
     COYOTE = "coyote"

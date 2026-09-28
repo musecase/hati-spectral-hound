@@ -58,10 +58,15 @@ PREDATORS = frozenset(
 SYSTEM_PROMPT = """You are HATI's visual observer for a fixed poultry-coop camera.
 Analyze the supplied frames from one chronological five-frame event. Return exactly one
 observation for each supplied frame number. The only allowed labels are empty, human,
-dog, cat, chicken, goose, raccoon, fox, coyote, opossum, skunk, and unknown.
+dog, cat, chicken, goose, rabbit, raccoon, fox, coyote, opossum, skunk, and unknown.
 
 Rules:
 - Classify what is visibly present; never guess an animal from motion alone.
+- Distinguish rabbits from raccoons by visible anatomy. Rabbits have long ears,
+  a compact hopping body, and a short tail; raccoons have small rounded ears and
+  a long tail that may show rings.
+- Infrared eye shine, facial contrast, leaf edges, and motion blur are not evidence
+  of a raccoon mask or banded tail.
 - Use human if any person or recognizable human body part is visible.
 - Use empty only when the protected area is clearly visible and contains no person or animal.
 - Use unknown when the subject is absent, obscured, or not identifiable.
@@ -82,6 +87,7 @@ BENIGN_SCREEN_LABELS = frozenset(
         AnimalLabel.CAT,
         AnimalLabel.CHICKEN,
         AnimalLabel.GOOSE,
+        AnimalLabel.RABBIT,
     }
 )
 BENIGN_SCREEN_CONFIDENCE = 0.85

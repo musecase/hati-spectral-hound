@@ -7,6 +7,7 @@ $ErrorActionPreference = "Stop"
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $VenvPython = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
 $CredentialPath = Join-Path $ProjectRoot "config\camera-credential.clixml"
+$OpenAIEnvPath = Join-Path $ProjectRoot ".env.local"
 $OpenAIKeyPath = Join-Path $ProjectRoot "config\openai-api-key.clixml"
 $TelegramCredentialPath = Join-Path $ProjectRoot "config\telegram-credential.clixml"
 $PythonRoot = Join-Path $env:LOCALAPPDATA "Programs\Python"
@@ -49,7 +50,16 @@ $NeedsOpenAIKey = (
         "evaluate-vision-improvement"
     )
 )
-if ($NeedsOpenAIKey -and (Test-Path -LiteralPath $OpenAIKeyPath)) {
+if ($NeedsOpenAIKey -and (Test-Path -LiteralPath $OpenAIEnvPath)) {
+    $OpenAIKeyLine = Get-Content -LiteralPath $OpenAIEnvPath |
+        Where-Object { $_ -match '^\s*OPENAI_API_KEY\s*=' } |
+        Select-Object -First 1
+    if (-not $OpenAIKeyLine) {
+        throw "OPENAI_API_KEY was not found in $OpenAIEnvPath"
+    }
+    $env:OPENAI_API_KEY = ($OpenAIKeyLine -split '=', 2)[1].Trim()
+}
+elseif ($NeedsOpenAIKey -and (Test-Path -LiteralPath $OpenAIKeyPath)) {
     $OpenAICredential = Import-Clixml -LiteralPath $OpenAIKeyPath
     $env:OPENAI_API_KEY = $OpenAICredential.GetNetworkCredential().Password
 }
