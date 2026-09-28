@@ -68,7 +68,7 @@ class DecisionConfig:
 
 @dataclass(frozen=True)
 class VisionConfig:
-    model: str = "gpt-5.6-luna"
+    model: str = "gpt-6-luna"
     image_detail: str = "high"
     reasoning_effort: str = "low"
     max_output_tokens: int = 1200
@@ -221,7 +221,7 @@ def load_config(path: str | Path) -> HatiConfig:
         ),
     )
     vision = VisionConfig(
-        model=str(vision_raw.get("model", "gpt-5.6-luna")).strip(),
+        model=str(vision_raw.get("model", "gpt-6-luna")).strip(),
         image_detail=str(vision_raw.get("image_detail", "high")).strip().lower(),
         reasoning_effort=str(
             vision_raw.get("reasoning_effort", "low")

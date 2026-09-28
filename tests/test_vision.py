@@ -82,7 +82,7 @@ class VisionTests(unittest.TestCase):
 
         self.assertEqual(1, len(client.responses.calls))
         request = client.responses.calls[0]
-        self.assertEqual("gpt-5.6-luna", request["model"])
+        self.assertEqual("gpt-6-luna", request["model"])
         self.assertEqual({"effort": "low"}, request["reasoning"])
         self.assertIn("Treat plush decoys as unknown", request["input"][0]["content"])
         self.assertFalse(request["store"])
@@ -134,6 +134,33 @@ class VisionTests(unittest.TestCase):
         self.assertEqual(2, result.trace.image_count)
         self.assertEqual((2, 4), result.trace.screening_frames)
         self.assertTrue(result.trace.screen_dismissed)
+
+    def test_clear_rabbit_screen_is_benign(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = []
+            for index in range(1, 6):
+                path = Path(temporary) / f"frame-{index:03d}.jpg"
+                path.write_bytes(b"synthetic-jpeg")
+                paths.append(path)
+            client = FakeOpenAI(
+                VisionScreen(
+                    observations=[
+                        observation(2, AnimalLabel.RABBIT),
+                        observation(4, AnimalLabel.RABBIT),
+                    ]
+                )
+            )
+
+            result = classify_frames(paths, VisionConfig(), client=client)
+
+        self.assertTrue(result.trace.screen_dismissed)
+        self.assertTrue(
+            all(item.animal is AnimalLabel.RABBIT for item in result.classifications)
+        )
+        self.assertTrue(all(not item.predator for item in result.classifications))
+        prompt = client.responses.calls[0]["input"][0]["content"]
+        self.assertIn("Distinguish rabbits from raccoons", prompt)
+        self.assertIn("Infrared eye shine", prompt)
 
     def test_uncertain_screen_requests_remaining_frames_and_combines_all_five(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

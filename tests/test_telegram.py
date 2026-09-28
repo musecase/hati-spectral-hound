@@ -206,7 +206,7 @@ class TelegramTests(unittest.TestCase):
                 EventStore(root),
                 FakeActuator(),
             )
-            data = feedback_keyboard(event.event_id)["inline_keyboard"][1][0][
+            data = feedback_keyboard(event.event_id)["inline_keyboard"][1][1][
                 "callback_data"
             ]
             result = controller.handle(
@@ -223,6 +223,34 @@ class TelegramTests(unittest.TestCase):
         self.assertEqual(FeedbackKind.WRONG_ANIMAL, loaded.feedback[0].kind)
         self.assertEqual("expected_label=raccoon", loaded.feedback[0].note)
         self.assertIn("expected animal raccoon", result.detail)
+
+    def test_owner_can_record_expected_rabbit_label(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            event = build_simulated_event("raccoon", "camera", "COOP_DOOR_ZONE")
+            EventStore(root).save(event)
+            controller = TelegramController(
+                telegram_config(),
+                EventStore(root),
+                FakeActuator(),
+            )
+            data = feedback_keyboard(event.event_id)["inline_keyboard"][1][0][
+                "callback_data"
+            ]
+            result = controller.handle(
+                {
+                    "callback_query": {
+                        "from": {"id": 42},
+                        "message": {"chat": {"id": 42}},
+                        "data": data,
+                    }
+                }
+            )
+            loaded = EventStore.load(root / event.event_id / "event.json")
+        self.assertTrue(result.accepted)
+        self.assertEqual(FeedbackKind.WRONG_ANIMAL, loaded.feedback[0].kind)
+        self.assertEqual("expected_label=rabbit", loaded.feedback[0].note)
+        self.assertIn("expected animal rabbit", result.detail)
 
     def test_non_owner_cannot_deploy(self) -> None:
         actuator = FakeActuator()

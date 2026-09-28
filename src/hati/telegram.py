@@ -173,6 +173,7 @@ def feedback_keyboard(event_id: str) -> dict[str, Any]:
                 button("False alarm", FeedbackKind.FALSE_ALARM),
             ],
             [
+                button("Rabbit", "label_rabbit"),
                 button("Raccoon", "label_raccoon"),
                 button("Opossum", "label_opossum"),
                 button("Skunk", "label_skunk"),
@@ -342,7 +343,7 @@ class TelegramController:
                 feedback_note = "expected_label=unknown"
             elif kind_raw.startswith("label_"):
                 expected_label = kind_raw.removeprefix("label_")
-                if expected_label not in {"raccoon", "opossum", "skunk"}:
+                if expected_label not in {"rabbit", "raccoon", "opossum", "skunk"}:
                     raise ValueError("Unsupported expected animal")
                 kind = FeedbackKind.WRONG_ANIMAL
                 feedback_note = f"expected_label={expected_label}"

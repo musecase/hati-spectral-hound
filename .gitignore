@@ -1,5 +1,6 @@
 # Secrets and local overrides
 .env
+.env.local
 config/hati.local.json
 config/camera-credential.clixml
 config/camera-credential-ready.marker
